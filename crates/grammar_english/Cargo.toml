@@ -1,0 +1,7 @@
+[package]
+name = "grammar_english"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+grammar = { path = "../grammar", version = "0.1.0" }
