@@ -1,7 +1,15 @@
 [package]
-name = "grammar_russian"
 version = "0.1.0"
 edition = "2024"
+name = "grammar_russian"
+# TODO: better description
+description = "Russian grammar and inflection library"
+authors = ["Chasmical <kaz@chsm.dev>"]
+keywords = ["grammar", "russian", "linguistics", "inflection", "declension"]
+categories = ["data-structures", "internationalization", "localization", "text-processing", "value-formatting"]
+repository = "https://github.com/Chasmical/grammar-rs"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
 
 [dependencies]
 grammar = { path = "../grammar", version = "0.1.0" }

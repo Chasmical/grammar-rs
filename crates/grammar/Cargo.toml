@@ -1,6 +1,12 @@
 [package]
-name = "grammar"
 version = "0.1.0"
 edition = "2024"
-
-[dependencies]
+name = "grammar"
+# TODO: better description
+description = "Provides some common traits and impls for grammar libraries"
+authors = ["Chasmical <kaz@chsm.dev>"]
+keywords = ["grammar", "linguistics", "inflection"]
+categories = ["data-structures", "internationalization", "localization", "text-processing", "value-formatting"]
+repository = "https://github.com/Chasmical/grammar-rs"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
