@@ -99,6 +99,11 @@ impl From<(Stress, Stress)> for DualStress {
         DualStress::new(value.0, value.1)
     }
 }
+impl From<Stress> for DualStress {
+    fn from(value: Stress) -> Self {
+        DualStress::new(value, Stress::Zero)
+    }
+}
 
 // Normalizing dual stress values
 impl DualStress {

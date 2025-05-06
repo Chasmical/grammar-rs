@@ -118,19 +118,19 @@ impl const HasNumber for Number {
 // Any type implementing HasCase implements HasCaseEx as well
 impl<T: ~const HasCase> const HasCaseEx for T {
     fn case_ex(&self) -> CaseEx {
-        self.case().into()
+        self.case().as_ex()
     }
 }
 
 // Casting Case to CaseEx
 impl Case {
-    pub const fn into(self) -> CaseEx {
+    pub const fn as_ex(self) -> CaseEx {
         unsafe { std::mem::transmute(self) }
     }
 }
-impl Into<CaseEx> for Case {
-    fn into(self) -> CaseEx {
-        self.into()
+impl From<Case> for CaseEx {
+    fn from(value: Case) -> Self {
+        value.as_ex()
     }
 }
 
@@ -191,13 +191,13 @@ impl const HasNumber for CaseExAndNumber {
 
 // Casting CaseAndNumber to CaseExAndNumber
 impl CaseAndNumber {
-    pub const fn into(self) -> CaseExAndNumber {
+    pub const fn as_ex(self) -> CaseExAndNumber {
         unsafe { std::mem::transmute(self) }
     }
 }
-impl Into<CaseExAndNumber> for CaseAndNumber {
-    fn into(self) -> CaseExAndNumber {
-        self.into()
+impl From<CaseAndNumber> for CaseExAndNumber {
+    fn from(value: CaseAndNumber) -> Self {
+        value.as_ex()
     }
 }
 // Normalizing CaseExAndNumber to CaseAndNumber
@@ -210,12 +210,9 @@ impl CaseExAndNumber {
             _ => unsafe { std::mem::transmute(self) },
         }
     }
-    pub const fn into(self) -> CaseAndNumber {
-        self.normalize()
-    }
 }
-impl Into<CaseAndNumber> for CaseExAndNumber {
-    fn into(self) -> CaseAndNumber {
-        self.into()
+impl From<CaseExAndNumber> for CaseAndNumber {
+    fn from(value: CaseExAndNumber) -> Self {
+        value.normalize()
     }
 }
