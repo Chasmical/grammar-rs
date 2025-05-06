@@ -126,3 +126,80 @@ impl DualStress {
         self
     }
 }
+
+// Formatting Stress and DualStress
+impl Stress {
+    pub const fn fmt_to(self, dst: &mut [u8; 4]) -> &mut str {
+        // If stress has primes, it will occupy the entire 4 byte buffer
+        if self.has_any_primes() {
+            // Contains the first two bytes of ′ and ″
+            *dst = [0, 0xE2, 0x80, 0];
+
+            // Write the letter: a, b, c, d, e, f
+            dst[0] = (b'a' - 1) + self.unprime() as u8;
+            // Write the last byte of ′ or ″
+            dst[3] = if self.has_double_prime() { 0xB3 } else { 0xB2 };
+
+            // Return string slice from the entire buffer
+            return unsafe { str::from_utf8_unchecked_mut(dst) };
+        }
+
+        // If zero, don't write anything
+        if self.is_zero() {
+            // Return string slice of length 0
+            let slice = unsafe { std::slice::from_raw_parts_mut(dst.as_mut_ptr(), 0) };
+            return unsafe { str::from_utf8_unchecked_mut(slice) };
+        }
+
+        // Write just the letter character
+        dst[0] = (b'a' - 1) + self as u8;
+
+        // Return string slice of length 1
+        let slice = unsafe { std::slice::from_raw_parts_mut(dst.as_mut_ptr(), 1) };
+        return unsafe { str::from_utf8_unchecked_mut(slice) };
+    }
+}
+impl DualStress {
+    pub const fn fmt_to(self, dst: &mut [u8; 9]) -> &str {
+        let mut offset: usize = 0;
+
+        if !self.main.is_zero() {
+            // Cast slice to one of 4-byte length
+            let buffer = Self::const_slice_4_array(dst, offset);
+
+            offset += self.main.fmt_to(buffer).len();
+        }
+
+        if !self.alt.is_zero() {
+            // Append '/' as a separator, even if main is not present
+            dst[offset] = '/' as u8;
+            offset += 1;
+
+            // Cast slice to one of 4-byte length
+            let buffer = Self::const_slice_4_array(dst, offset);
+
+            offset += self.alt.fmt_to(buffer).len();
+        }
+
+        // Return string slice with current offset as length
+        let slice = unsafe { std::slice::from_raw_parts_mut(dst.as_mut_ptr(), offset) };
+        return unsafe { str::from_utf8_unchecked_mut(slice) };
+    }
+    #[inline]
+    const fn const_slice_4_array(dst: &mut [u8; 9], offset: usize) -> &mut [u8; 4] {
+        unsafe { &mut *(dst.as_mut_ptr().add(offset) as *mut [u8; 4]) }
+    }
+}
+
+impl std::fmt::Display for Stress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut buffer: [u8; 4] = [0; 4];
+        f.write_str(self.fmt_to(&mut buffer))
+    }
+}
+impl std::fmt::Display for DualStress {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut buffer: [u8; 9] = [0; 9];
+        f.write_str(self.fmt_to(&mut buffer))
+    }
+}
