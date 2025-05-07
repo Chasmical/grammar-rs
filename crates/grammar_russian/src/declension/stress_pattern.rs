@@ -201,3 +201,57 @@ impl std::fmt::Display for DualStress {
         f.write_str(self.fmt_to(&mut [0; 9]))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use Stress::*;
+
+    #[test]
+    fn stress_fmt() {
+        assert_eq!(Zero.to_string(), "");
+        // Simple
+        assert_eq!(A.to_string(), "a");
+        assert_eq!(B.to_string(), "b");
+        assert_eq!(C.to_string(), "c");
+        assert_eq!(D.to_string(), "d");
+        assert_eq!(E.to_string(), "e");
+        assert_eq!(F.to_string(), "f");
+        // Single-primed
+        assert_eq!(Ap.to_string(), "a′");
+        assert_eq!(Bp.to_string(), "b′");
+        assert_eq!(Cp.to_string(), "c′");
+        assert_eq!(Dp.to_string(), "d′");
+        assert_eq!(Ep.to_string(), "e′");
+        assert_eq!(Fp.to_string(), "f′");
+        // Double-primed
+        assert_eq!(Cpp.to_string(), "c″");
+        assert_eq!(Fpp.to_string(), "f″");
+    }
+
+    #[test]
+    fn dual_stress_fmt() {
+        // Both zeroes
+        assert_eq!(DualStress::new(Zero, Zero).to_string(), "");
+        // Main stress only
+        assert_eq!(DualStress::new(A, Zero).to_string(), "a");
+        assert_eq!(DualStress::new(F, Zero).to_string(), "f");
+        assert_eq!(DualStress::new(Ap, Zero).to_string(), "a′");
+        assert_eq!(DualStress::new(Fp, Zero).to_string(), "f′");
+        assert_eq!(DualStress::new(Cpp, Zero).to_string(), "c″");
+        assert_eq!(DualStress::new(Fpp, Zero).to_string(), "f″");
+        // Alt stress only
+        assert_eq!(DualStress::new(Zero, A).to_string(), "/a");
+        assert_eq!(DualStress::new(Zero, F).to_string(), "/f");
+        assert_eq!(DualStress::new(Zero, Ap).to_string(), "/a′");
+        assert_eq!(DualStress::new(Zero, Fp).to_string(), "/f′");
+        assert_eq!(DualStress::new(Zero, Cpp).to_string(), "/c″");
+        assert_eq!(DualStress::new(Zero, Fpp).to_string(), "/f″");
+        // Both stresses
+        assert_eq!(DualStress::new(A, B).to_string(), "a/b");
+        assert_eq!(DualStress::new(E, Ep).to_string(), "e/e′");
+        assert_eq!(DualStress::new(Ep, E).to_string(), "e′/e");
+        assert_eq!(DualStress::new(Fp, Fpp).to_string(), "f′/f″");
+        assert_eq!(DualStress::new(Fpp, Fp).to_string(), "f″/f′");
+    }
+}
