@@ -76,15 +76,21 @@ impl Stress {
     pub const fn unprime(self) -> Stress {
         if self.has_any_primes() {
             return if self.has_double_prime() {
-                match self {
-                    Stress::Cpp => Stress::C,
-                    _ => Stress::F,
-                }
+                self.unprime_double_unchecked()
             } else {
-                unsafe { std::mem::transmute(self as u8 - (Self::MIN_1_PRIME_U8 - 1)) }
+                self.unprime_single_unchecked()
             };
         }
         self
+    }
+    pub const fn unprime_single_unchecked(self) -> Self {
+        unsafe { std::mem::transmute(self as u8 - (Self::MIN_1_PRIME_U8 - 1)) }
+    }
+    pub const fn unprime_double_unchecked(self) -> Self {
+        match self {
+            Stress::Cpp => Stress::C,
+            _ => Stress::F,
+        }
     }
 }
 
@@ -105,23 +111,17 @@ impl From<Stress> for DualStress {
     }
 }
 
-// Normalizing dual stress values
+// Normalizing DualStress values
 impl DualStress {
     pub const fn normalize_adj(self) -> Self {
         if self.alt.is_zero() {
-            return Self {
-                alt: self.main,
-                main: self.main.unprime(),
-            };
+            return Self::new(self.main.unprime(), self.main);
         }
         self
     }
     pub const fn normalize_verb(self) -> Self {
         if self.alt.is_zero() {
-            return Self {
-                alt: Stress::A,
-                ..self
-            };
+            return Self::new(self.main, Stress::A);
         }
         self
     }
@@ -172,7 +172,7 @@ impl DualStress {
 
         if !self.alt.is_zero() {
             // Append '/' as a separator, even if main is not present
-            dst[offset] = '/' as u8;
+            dst[offset] = b'/';
             offset += 1;
 
             // Cast slice to one of 4-byte length
@@ -192,14 +192,12 @@ impl DualStress {
 }
 
 impl std::fmt::Display for Stress {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut buffer: [u8; 4] = [0; 4];
-        f.write_str(self.fmt_to(&mut buffer))
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(self.fmt_to(&mut [0; 4]))
     }
 }
 impl std::fmt::Display for DualStress {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut buffer: [u8; 9] = [0; 9];
-        f.write_str(self.fmt_to(&mut buffer))
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(self.fmt_to(&mut [0; 9]))
     }
 }
