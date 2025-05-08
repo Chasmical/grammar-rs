@@ -111,6 +111,8 @@ impl Stress {
 
 // Constructing DualStress
 impl DualStress {
+    pub const ZERO: DualStress = Self::new(Stress::Zero, Stress::Zero);
+
     pub const fn new(main: Stress, alt: Stress) -> Self {
         DualStress { main, alt }
     }
@@ -217,6 +219,91 @@ impl std::fmt::Display for Stress {
 impl std::fmt::Display for DualStress {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.write_str(self.fmt_to(&mut [0; 9]))
+    }
+}
+
+#[derive(Debug)]
+pub enum ParseStressError {
+    Empty,
+    InvalidPrime,
+    InvalidFormat,
+}
+
+impl Stress {
+    pub const fn from_str_or_empty(text: &str) -> Result<Self, ParseStressError> {
+        if text.is_empty() {
+            Ok(Stress::Zero)
+        } else {
+            Self::from_str(text)
+        }
+    }
+    pub const fn from_str(text: &str) -> Result<Self, ParseStressError> {
+        let text = text.as_bytes();
+
+        let letter = match text.first() {
+            None => return Err(ParseStressError::Empty),
+            Some(b'a') => Stress::A,
+            Some(b'b') => Stress::B,
+            Some(b'c') => Stress::C,
+            Some(b'd') => Stress::D,
+            Some(b'e') => Stress::E,
+            Some(b'f') => Stress::F,
+            _ => return Err(ParseStressError::InvalidFormat),
+        };
+
+        match text {
+            // Simple one-letter stress
+            [_] => Ok(letter),
+            // Single-prime: apostrophe, or UTF-8 char
+            [_, b'\''] | [_, 0xE2, 0x80, 0xB2] => match letter.add_single_prime() {
+                Some(stress) => Ok(stress),
+                None => Err(ParseStressError::InvalidPrime),
+            },
+            // Double-prime: quotation, two apostrophes, or UTF-8 char
+            [_, b'"'] | [_, b'\'', b'\''] | [_, 0xE2, 0x80, 0xB3] => {
+                match letter.add_double_prime() {
+                    Some(stress) => Ok(stress),
+                    None => Err(ParseStressError::InvalidPrime),
+                }
+            },
+            // All other cases are invalid
+            _ => Err(ParseStressError::InvalidFormat),
+        }
+    }
+}
+impl DualStress {
+    pub fn from_str_or_empty(text: &str) -> Result<Self, ParseStressError> {
+        match text.split_once('/') {
+            Some((left, right)) => Ok(Self::new(
+                Stress::from_str_or_empty(left)?,
+                Stress::from_str_or_empty(right)?,
+            )),
+            None => Ok(Self::new(Stress::from_str_or_empty(text)?, Stress::Zero)),
+        }
+    }
+    pub fn from_str(text: &str) -> Result<Self, ParseStressError> {
+        match text.split_once('/') {
+            Some((left, right)) => Ok(Self::new(
+                Stress::from_str_or_empty(left)?,
+                Stress::from_str_or_empty(right)?,
+            )),
+            None => Ok(Self::new(Stress::from_str(text)?, Stress::Zero)),
+        }
+    }
+}
+
+impl std::str::FromStr for Stress {
+    type Err = ParseStressError;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        Self::from_str(text)
+    }
+}
+impl std::str::FromStr for DualStress {
+    type Err = ParseStressError;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        Self::from_str(text)
     }
 }
 
