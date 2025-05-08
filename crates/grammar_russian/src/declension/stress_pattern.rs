@@ -52,45 +52,60 @@ impl const HasStress for DualStress {
 }
 
 impl Stress {
-    const MIN_1_PRIME_U8: u8 = Stress::Ap as u8;
-    const MIN_2_PRIME_U8: u8 = Stress::Cpp as u8;
-
     // Simple stress value checks
     pub const fn is_zero(self) -> bool {
         matches!(self, Stress::Zero)
     }
-    pub const fn or(self, default: Self) -> Self {
+    pub const fn or(self, default: Self) -> Stress {
         if self.is_zero() { default } else { self }
     }
     pub const fn has_any_primes(self) -> bool {
-        matches!(self as u8, Self::MIN_1_PRIME_U8..)
+        !matches!(
+            self,
+            Self::Zero | Self::A | Self::B | Self::C | Self::D | Self::E | Self::F
+        )
     }
     pub const fn has_single_prime(self) -> bool {
-        matches!(self as u8, Self::MIN_1_PRIME_U8..Self::MIN_2_PRIME_U8)
+        matches!(
+            self,
+            Self::Ap | Self::Bp | Self::Cp | Self::Dp | Self::Ep | Self::Fp
+        )
     }
     pub const fn has_double_prime(self) -> bool {
-        matches!(self as u8, Self::MIN_2_PRIME_U8..)
+        matches!(self, Self::Cpp | Self::Fpp)
     }
 
     // Removing primes from a stress value
     pub const fn unprime(self) -> Stress {
-        if self.has_any_primes() {
-            return if self.has_double_prime() {
-                self.unprime_double_unchecked()
-            } else {
-                self.unprime_single_unchecked()
-            };
-        }
-        self
-    }
-    pub const fn unprime_single_unchecked(self) -> Self {
-        unsafe { std::mem::transmute(self as u8 - (Self::MIN_1_PRIME_U8 - 1)) }
-    }
-    pub const fn unprime_double_unchecked(self) -> Self {
         match self {
-            Stress::Cpp => Stress::C,
-            _ => Stress::F,
+            Self::Zero => Self::Zero,
+            Self::A | Self::Ap => Self::A,
+            Self::B | Self::Bp => Self::B,
+            Self::C | Self::Cp | Self::Cpp => Self::C,
+            Self::D | Self::Dp => Self::D,
+            Self::E | Self::Ep => Self::E,
+            Self::F | Self::Fp | Self::Fpp => Self::F,
         }
+    }
+
+    // Adding primes to a letter stress
+    pub const fn add_single_prime(self) -> Option<Stress> {
+        Some(match self {
+            Self::A => Self::Ap,
+            Self::B => Self::Bp,
+            Self::C => Self::Cp,
+            Self::D => Self::Dp,
+            Self::E => Self::Ep,
+            Self::F => Self::Fp,
+            _ => return None,
+        })
+    }
+    pub const fn add_double_prime(self) -> Option<Stress> {
+        Some(match self {
+            Self::C => Self::Cpp,
+            Self::F => Self::Fpp,
+            _ => return None,
+        })
     }
 }
 
@@ -130,20 +145,6 @@ impl DualStress {
 // Formatting Stress and DualStress
 impl Stress {
     pub const fn fmt_to(self, dst: &mut [u8; 4]) -> &mut str {
-        // If stress has primes, it will occupy the entire 4 byte buffer
-        if self.has_any_primes() {
-            // Contains the first two bytes of ′ and ″
-            *dst = [0, 0xE2, 0x80, 0];
-
-            // Write the letter: a, b, c, d, e, f
-            dst[0] = (b'a' - 1) + self.unprime() as u8;
-            // Write the last byte of ′ or ″
-            dst[3] = if self.has_double_prime() { 0xB3 } else { 0xB2 };
-
-            // Return string slice from the entire buffer
-            return unsafe { str::from_utf8_unchecked_mut(dst) };
-        }
-
         // If zero, don't write anything
         if self.is_zero() {
             // Return string slice of length 0
@@ -151,8 +152,29 @@ impl Stress {
             return unsafe { str::from_utf8_unchecked_mut(slice) };
         }
 
-        // Write just the letter character
-        dst[0] = (b'a' - 1) + self as u8;
+        // Write the letter: a, b, c, d, e, f
+        dst[0] = match self.unprime() {
+            Stress::A => b'a',
+            Stress::B => b'b',
+            Stress::C => b'c',
+            Stress::D => b'd',
+            Stress::E => b'e',
+            Stress::F => b'f',
+            _ => unreachable!(),
+        };
+
+        // If stress has primes, it will occupy the entire 4 byte buffer
+        if self.has_any_primes() {
+            // // Write the UTF-8 bytes of ′ or ″
+            let ch = match self.has_double_prime() {
+                true => '″',
+                false => '′',
+            };
+            ch.encode_utf8(dst.last_chunk_mut::<3>().unwrap());
+
+            // Return string slice from the entire buffer
+            return unsafe { str::from_utf8_unchecked_mut(dst) };
+        }
 
         // Return string slice of length 1
         let slice = unsafe { std::slice::from_raw_parts_mut(dst.as_mut_ptr(), 1) };
@@ -164,10 +186,8 @@ impl DualStress {
         let mut offset: usize = 0;
 
         if !self.main.is_zero() {
-            // Cast slice to one of 4-byte length
-            let buffer = Self::const_slice_4_array(dst, offset);
-
-            offset += self.main.fmt_to(buffer).len();
+            // Format main into a 4-byte sub-buffer
+            offset += self.main.fmt_to(const_slice(dst, offset)).len();
         }
 
         if !self.alt.is_zero() {
@@ -175,19 +195,17 @@ impl DualStress {
             dst[offset] = b'/';
             offset += 1;
 
-            // Cast slice to one of 4-byte length
-            let buffer = Self::const_slice_4_array(dst, offset);
-
-            offset += self.alt.fmt_to(buffer).len();
+            // Format alt into a 4-byte sub-buffer
+            offset += self.alt.fmt_to(const_slice(dst, offset)).len();
         }
 
         // Return string slice with current offset as length
         let slice = unsafe { std::slice::from_raw_parts_mut(dst.as_mut_ptr(), offset) };
         return unsafe { str::from_utf8_unchecked_mut(slice) };
-    }
-    #[inline]
-    const fn const_slice_4_array(dst: &mut [u8; 9], offset: usize) -> &mut [u8; 4] {
-        unsafe { &mut *(dst.as_mut_ptr().add(offset) as *mut [u8; 4]) }
+
+        const fn const_slice(dst: &mut [u8; 9], offset: usize) -> &mut [u8; 4] {
+            unsafe { &mut *(dst.as_mut_ptr().add(offset).cast::<[u8; 4]>()) }
+        }
     }
 }
 
