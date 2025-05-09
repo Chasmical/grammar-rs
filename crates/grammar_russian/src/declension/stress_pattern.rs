@@ -222,7 +222,7 @@ impl std::fmt::Display for DualStress {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParseStressError {
     Empty,
     InvalidPrime,
@@ -358,5 +358,53 @@ mod tests {
         assert_eq!(DualStress::new(Ep, E).to_string(), "e′/e");
         assert_eq!(DualStress::new(Fp, Fpp).to_string(), "f′/f″");
         assert_eq!(DualStress::new(Fpp, Fp).to_string(), "f″/f′");
+    }
+
+    #[test]
+    fn stress_parse() {
+        // Zero/empty
+        assert_eq!(Stress::from_str(""), Err(ParseStressError::Empty));
+        assert_eq!(Stress::from_str_or_empty(""), Ok(Zero));
+        // Simple
+        assert_eq!(Stress::from_str("a"), Ok(A));
+        assert_eq!(Stress::from_str("b"), Ok(B));
+        assert_eq!(Stress::from_str("c"), Ok(C));
+        assert_eq!(Stress::from_str("d"), Ok(D));
+        assert_eq!(Stress::from_str("e"), Ok(E));
+        assert_eq!(Stress::from_str("f"), Ok(F));
+        // Single-primed
+        assert_eq!(Stress::from_str("a'"), Ok(Ap));
+        assert_eq!(Stress::from_str("f′"), Ok(Fp));
+        // Double-primed
+        assert_eq!(Stress::from_str("c''"), Ok(Cpp));
+        assert_eq!(Stress::from_str("c\""), Ok(Cpp));
+        assert_eq!(Stress::from_str("f″"), Ok(Fpp));
+    }
+    #[test]
+    fn dual_stress_parse() {
+        // Zero/empty
+        assert_eq!(DualStress::from_str(""), Err(ParseStressError::Empty));
+        assert_eq!(DualStress::from_str_or_empty(""), Ok(DualStress::ZERO));
+        assert_eq!(DualStress::from_str("/"), Ok(DualStress::ZERO));
+        // Main stress only
+        assert_eq!(DualStress::from_str("a"), Ok(DualStress::new(A, Zero)));
+        assert_eq!(DualStress::from_str("f/"), Ok(DualStress::new(F, Zero)));
+        assert_eq!(DualStress::from_str("a′"), Ok(DualStress::new(Ap, Zero)));
+        assert_eq!(DualStress::from_str("f'/"), Ok(DualStress::new(Fp, Zero)));
+        assert_eq!(DualStress::from_str("c″"), Ok(DualStress::new(Cpp, Zero)));
+        assert_eq!(DualStress::from_str("f\"/"), Ok(DualStress::new(Fpp, Zero)));
+        // Alt stress only
+        assert_eq!(DualStress::from_str("/a"), Ok(DualStress::new(Zero, A)));
+        assert_eq!(DualStress::from_str("/f"), Ok(DualStress::new(Zero, F)));
+        assert_eq!(DualStress::from_str("/a′"), Ok(DualStress::new(Zero, Ap)));
+        assert_eq!(DualStress::from_str("/f'"), Ok(DualStress::new(Zero, Fp)));
+        assert_eq!(DualStress::from_str("/c″"), Ok(DualStress::new(Zero, Cpp)));
+        assert_eq!(DualStress::from_str("/f\""), Ok(DualStress::new(Zero, Fpp)));
+        // Both stresses
+        assert_eq!(DualStress::from_str("a/b"), Ok(DualStress::new(A, B)));
+        assert_eq!(DualStress::from_str("e/e′"), Ok(DualStress::new(E, Ep)));
+        assert_eq!(DualStress::from_str("e'/e"), Ok(DualStress::new(Ep, E)));
+        assert_eq!(DualStress::from_str("f'/f″"), Ok(DualStress::new(Fp, Fpp)));
+        assert_eq!(DualStress::from_str("f''/f′"), Ok(DualStress::new(Fpp, Fp)));
     }
 }
