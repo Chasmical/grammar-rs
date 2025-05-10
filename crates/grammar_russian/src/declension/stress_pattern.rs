@@ -1,35 +1,114 @@
 /// Represents a Russian stress schema.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Stress {
+    /// Zero, or unspecified, stress.
     #[default]
     Zero = 0,
+    /// Stress schema `a`. The stress is always on the stem. Used by all inflectable words.
     A = 1,
+    /// Stress schema `b`. The stress is always on the ending. Used by all inflectable words.
     B = 2,
+    /// Stress schema `c`.
+    /// - Nouns: singular - stress on stem, plural - stress on ending.
+    /// - Adjectives (short form only): feminine - stress on ending, all other - stress on stem.
+    /// - Verbs (non-past tense): first person, and imperative - stress on ending, all other - stress on stem.
+    /// - Verbs (past tense): feminine - stress on ending, all other - stress on stem.
     C = 3,
+    /// Stress schema `d`.
+    /// - Nouns: singular - stress on ending, plural - stress on stem.
     D = 4,
+    /// Stress schema `e`.
+    /// - Nouns: singular, and plural nominative - stress on stem, plural of other cases - stress on ending.
     E = 5,
+    /// Stress schema `f`.
+    /// - Nouns and pronouns: plural nominative - stress on stem, all other - stress on ending.
     F = 6,
+    /// Stress schema `a′` (`a` with single prime).
+    /// - Adjectives (short form only): feminine - both??? (resolved as on stem), all other - stress on stem.
     Ap = 7,
+    /// Stress schema `b′` (`b` with single prime).
+    /// - Nouns: singular instrumental - stress on stem, all other - stress on ending.
+    /// - Adjectives (short form only): plural - both??? (resolved as on ending), all other - stress on ending.
     Bp = 8,
+    /// Stress schema `c′` (`c` with single prime).
+    /// - Adjectives (short form only): feminine - stress on ending, neuter - stress on stem, plural - TODO: both???.
+    /// - Verbs (non-past tense): first person, imperative, and plural - stress on ending, all other - stress on stem.
+    /// - Verbs (past tense): feminine - stress on ending, neuter - TODO: both???, all other - stress on stem.
     Cp = 9,
+    /// Stress schema `d′` (`d` with single prime).
+    /// - Nouns: singular accusative, and plural - stress on stem, singular of other cases - stress on ending.
     Dp = 10,
+    /// Stress schema `e′` (`e` with single prime).
+    /// TODO: Unused???
     Ep = 11,
+    /// Stress schema `f′` (`f` with single prime).
+    /// - Nouns: singular accusative, and plural nominative - stress on stem, all other - stress on ending.
     Fp = 12,
+    /// Stress schema `c″` (`c` with double prime).
+    /// - Adjectives (short form only): feminine - stress on ending, all other - both??? (resolved as on ending).
+    /// - Verbs (past tense reflexive only): masculine - stress on stem, feminine - stress on ending, neuter and plural - TODO: both???.
     Cpp = 13,
+    /// Stress schema `f″` (`f` with double prime).
+    /// - Nouns: singular instrumental, and plural nominative - stress on stem, all other - stress on ending.
     Fpp = 14,
 }
 
-/// Represents a Russian dual stress schema, for main and alt forms of the word.
+/// [`DualStress`] consists of two [`Stress`] values, for main and alternative forms of the word.
+///
+/// An adjective's alternative form is its short form, and a verb's is its past tense form.
+/// Other parts of speech don't have alternative forms.
+///
+/// # Examples
+/// ```
+/// use grammar_russian::declension::{DualStress, HasStress, Stress};
+///
+/// let dual = DualStress::new(Stress::A, Stress::B);
+/// assert_eq!(dual.main_stress(), Stress::A);
+/// assert_eq!(dual.alt_stress(), Stress::B);
+/// ```
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct DualStress {
     main: Stress,
     alt: Stress,
 }
 
-// Trait providing Stress values
+/// Trait for providing main and alternative form [`Stress`]es.
+///
+/// An adjective's alternative form is its short form, and a verb's is its past tense form.
+/// Other parts of speech don't have alternative forms.
+///
+/// # Examples
+/// ```
+/// use grammar_russian::declension::{DualStress, HasStress, Stress};
+///
+/// assert_eq!(Stress::C.main_stress(), Stress::C);
+/// assert_eq!(Stress::C.alt_stress(), Stress::Zero);
+///
+/// let dual = DualStress::new(Stress::A, Stress::B);
+/// assert_eq!(dual.main_stress(), Stress::A);
+/// assert_eq!(dual.alt_stress(), Stress::B);
+/// ```
 #[const_trait]
 pub trait HasStress {
+    /// Returns the main form stress associated with the current value.
+    ///
+    /// # Examples
+    /// ```
+    /// use grammar_russian::declension::{DualStress, HasStress, Stress};
+    ///
+    /// assert_eq!(Stress::C.main_stress(), Stress::C);
+    /// assert_eq!(DualStress::new(Stress::A, Stress::B).main_stress(), Stress::A);
+    /// ```
     fn main_stress(self) -> Stress;
+    /// Returns the alternative form stress associated with the current value.
+    ///
+    /// # Examples
+    /// ```
+    /// use grammar_russian::declension::{DualStress, HasStress, Stress};
+    ///
+    /// assert_eq!(Stress::C.alt_stress(), Stress::Zero);
+    /// assert_eq!(DualStress::new(Stress::A, Stress::B).alt_stress(), Stress::B);
+    /// ```
     fn alt_stress(self) -> Stress;
 }
 
@@ -52,30 +131,87 @@ impl const HasStress for DualStress {
 }
 
 impl Stress {
-    // Simple stress value checks
+    /// Returns `true` if the stress is a [`Stress::Zero`] value.
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::Stress;
+    /// #
+    /// assert_eq!(Stress::Zero.is_zero(), true);
+    /// assert_eq!(Stress::A.is_zero(), false);
+    /// ```
     pub const fn is_zero(self) -> bool {
         matches!(self, Stress::Zero)
     }
+    /// Returns the stress or the specified default value, if it's zero.
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::Stress;
+    /// #
+    /// assert_eq!(Stress::Zero.or(Stress::C), Stress::C);
+    /// assert_eq!(Stress::A.or(Stress::C), Stress::A);
+    /// assert_eq!(Stress::Fpp.or(Stress::C), Stress::Fpp);
+    /// ```
     pub const fn or(self, default: Self) -> Stress {
         if self.is_zero() { default } else { self }
     }
+    /// Returns `true` if the stress has any primes.
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::Stress;
+    /// #
+    /// assert_eq!(Stress::A.has_any_primes(), false);
+    /// assert_eq!(Stress::Bp.has_any_primes(), true);
+    /// assert_eq!(Stress::Fpp.has_any_primes(), true);
+    /// ```
     pub const fn has_any_primes(self) -> bool {
         !matches!(
             self,
             Self::Zero | Self::A | Self::B | Self::C | Self::D | Self::E | Self::F
         )
     }
+    /// Returns `true` if the stress has a single prime.
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::Stress;
+    /// #
+    /// assert_eq!(Stress::A.has_single_prime(), false);
+    /// assert_eq!(Stress::Bp.has_single_prime(), true);
+    /// assert_eq!(Stress::Fpp.has_single_prime(), false);
+    /// ```
     pub const fn has_single_prime(self) -> bool {
         matches!(
             self,
             Self::Ap | Self::Bp | Self::Cp | Self::Dp | Self::Ep | Self::Fp
         )
     }
+    /// Returns `true` if the stress has a double prime.
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::Stress;
+    /// #
+    /// assert_eq!(Stress::A.has_double_prime(), false);
+    /// assert_eq!(Stress::Bp.has_double_prime(), false);
+    /// assert_eq!(Stress::Fpp.has_double_prime(), true);
+    /// ```
     pub const fn has_double_prime(self) -> bool {
         matches!(self, Self::Cpp | Self::Fpp)
     }
 
-    // Removing primes from a stress value
+    /// Removes the primes from a stress value.
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::Stress;
+    /// #
+    /// assert_eq!(Stress::A.unprime(), Stress::A);
+    /// assert_eq!(Stress::Bp.unprime(), Stress::B);
+    /// assert_eq!(Stress::Fpp.unprime(), Stress::F);
+    /// ```
     pub const fn unprime(self) -> Stress {
         match self {
             Self::Zero => Self::Zero,
@@ -88,7 +224,17 @@ impl Stress {
         }
     }
 
-    // Adding primes to a letter stress
+    /// Attempts to add a single prime to a simple stress value.
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::Stress;
+    /// #
+    /// assert_eq!(Stress::Zero.add_single_prime(), None);
+    /// assert_eq!(Stress::A.add_single_prime(), Some(Stress::Ap));
+    /// assert_eq!(Stress::Bp.add_single_prime(), None);
+    /// assert_eq!(Stress::Fpp.add_single_prime(), None);
+    /// ```
     pub const fn add_single_prime(self) -> Option<Stress> {
         Some(match self {
             Self::A => Self::Ap,
@@ -100,6 +246,24 @@ impl Stress {
             _ => return None,
         })
     }
+    /// Attempts to add a double prime to a simple stress value.
+    ///
+    /// Note that [`Stress::C`] and [`Stress::F`] are the only simple stresses that can be
+    /// converted into their double-primed counterparts [`Stress::Cpp`] and [`Stress::Fpp`].
+    /// Other simple stresses don't have double-primed counterparts.
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::Stress;
+    /// #
+    /// assert_eq!(Stress::Zero.add_double_prime(), None);
+    /// assert_eq!(Stress::A.add_double_prime(), None);
+    /// assert_eq!(Stress::C.add_double_prime(), Some(Stress::Cpp));
+    /// assert_eq!(Stress::D.add_double_prime(), None);
+    /// assert_eq!(Stress::F.add_double_prime(), Some(Stress::Fpp));
+    /// assert_eq!(Stress::Bp.add_double_prime(), None);
+    /// assert_eq!(Stress::Fpp.add_double_prime(), None);
+    /// ```
     pub const fn add_double_prime(self) -> Option<Stress> {
         Some(match self {
             Self::C => Self::Cpp,
@@ -109,10 +273,20 @@ impl Stress {
     }
 }
 
-// Constructing DualStress
 impl DualStress {
+    /// Zero dual stress, consisting of [`Stress::Zero`] and [`Stress::Zero`].
     pub const ZERO: DualStress = Self::new(Stress::Zero, Stress::Zero);
 
+    /// Creates a new [`DualStress`] with the given main and alternative form stresses.
+    ///
+    /// # Examples
+    /// ```
+    /// use grammar_russian::declension::{DualStress, HasStress, Stress};
+    ///
+    /// let dual = DualStress::new(Stress::A, Stress::B);
+    /// assert_eq!(dual.main_stress(), Stress::A);
+    /// assert_eq!(dual.alt_stress(), Stress::B);
+    /// ```
     pub const fn new(main: Stress, alt: Stress) -> Self {
         DualStress { main, alt }
     }
@@ -128,14 +302,41 @@ impl From<Stress> for DualStress {
     }
 }
 
-// Normalizing DualStress values
 impl DualStress {
+    /// Normalizes the dual stress for use by adjectives.
+    ///
+    /// If alternative stress is zero, then it is set to main, and main is unprimed.
+    ///
+    /// # Examples
+    /// ```
+    /// use grammar_russian::declension::{DualStress as Dual, Stress::*};
+    ///
+    /// assert_eq!(Dual::new(A, B).normalize_adj(), Dual::new(A, B));
+    /// assert_eq!(Dual::new(A, Zero).normalize_adj(), Dual::new(A, A));
+    /// assert_eq!(Dual::new(B, Zero).normalize_adj(), Dual::new(B, B));
+    /// assert_eq!(Dual::new(Cp, Zero).normalize_adj(), Dual::new(C, Cp));
+    /// assert_eq!(Dual::new(Fpp, Zero).normalize_adj(), Dual::new(F, Fpp));
+    /// ```
     pub const fn normalize_adj(self) -> Self {
         if self.alt.is_zero() {
             return Self::new(self.main.unprime(), self.main);
         }
         self
     }
+    /// Normalizes the dual stress for use by verbs.
+    ///
+    /// If alternative stress is zero, then it is set to `a`.
+    ///
+    /// # Examples
+    /// ```
+    /// use grammar_russian::declension::{DualStress as Dual, Stress::*};
+    ///
+    /// assert_eq!(Dual::new(A, B).normalize_verb(), Dual::new(A, B));
+    /// assert_eq!(Dual::new(A, Zero).normalize_verb(), Dual::new(A, A));
+    /// assert_eq!(Dual::new(B, Zero).normalize_verb(), Dual::new(B, A));
+    /// assert_eq!(Dual::new(Cp, Zero).normalize_verb(), Dual::new(Cp, A));
+    /// assert_eq!(Dual::new(Fpp, Zero).normalize_verb(), Dual::new(Fpp, A));
+    /// ```
     pub const fn normalize_verb(self) -> Self {
         if self.alt.is_zero() {
             return Self::new(self.main, Stress::A);
@@ -144,8 +345,20 @@ impl DualStress {
     }
 }
 
-// Formatting Stress and DualStress
 impl Stress {
+    /// Formats the stress into the provided byte buffer, returning
+    /// a subslice of the buffer containing the formatted stress.
+    ///
+    /// Requires the buffer to be 4 bytes long via `[u8; 4]`.
+    /// If the length of your buffer is different, use [`slice::first_chunk_mut`]:
+    ///
+    /// ```
+    /// # use grammar_russian::declension::Stress;
+    /// #
+    /// let buffer = &mut [0; 32][..];
+    /// let dst = buffer.first_chunk_mut::<4>().unwrap();
+    /// assert_eq!(Stress::Fpp.fmt_to(dst), "f″");
+    /// ```
     pub const fn fmt_to(self, dst: &mut [u8; 4]) -> &mut str {
         // If zero, don't write anything
         if self.is_zero() {
@@ -184,6 +397,19 @@ impl Stress {
     }
 }
 impl DualStress {
+    /// Formats the stress into the provided byte buffer, returning
+    /// a subslice of the buffer containing the formatted stress.
+    ///
+    /// Requires the buffer to be 9 bytes long via `[u8; 9]`.
+    /// If the length of your buffer is different, use [`slice::first_chunk_mut`]:
+    ///
+    /// ```
+    /// # use grammar_russian::declension::{DualStress, Stress};
+    /// #
+    /// let buffer = &mut [0; 32][..];
+    /// let dst = buffer.first_chunk_mut::<9>().unwrap();
+    /// assert_eq!(DualStress::new(Stress::D, Stress::Fpp).fmt_to(dst), "d/f″");
+    /// ```
     pub const fn fmt_to(self, dst: &mut [u8; 9]) -> &str {
         let mut offset: usize = 0;
 
@@ -222,12 +448,17 @@ impl std::fmt::Display for DualStress {
     }
 }
 
+/// Error returned when a [`Stress`] or [`DualStress`] cannot be parsed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParseStressError {
+    /// The given string slice was empty.
     Empty,
+    /// Invalid double-primed letter, such as a″, b″, d″, or e″.
     InvalidPrime,
+    /// The given string slice was of a generally invalid format.
     InvalidFormat,
 }
+// TODO: impl Error/Display for ParseStressError
 
 impl Stress {
     pub const fn from_str_or_empty(text: &str) -> Result<Self, ParseStressError> {
@@ -237,6 +468,25 @@ impl Stress {
             Self::from_str(text)
         }
     }
+    /// Parses a [`Stress`] value from a string slice.
+    ///
+    /// The string is expected to be a lowercase latin letter (`a-f`), optionally
+    /// followed by a prime modifier (Unicode: `′`, `″`; ASCII: `'`, `"`, `''`).
+    ///
+    /// Only `c` and `f` can have a double-prime modifier.
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::{ParseStressError, Stress};
+    /// #
+    /// assert_eq!(Stress::from_str("a"), Ok(Stress::A));
+    /// assert_eq!(Stress::from_str("b′"), Ok(Stress::Bp));
+    /// assert_eq!(Stress::from_str("c″"), Ok(Stress::Cpp));
+    ///
+    /// assert_eq!(Stress::from_str(""), Err(ParseStressError::Empty));
+    /// assert_eq!(Stress::from_str("e″"), Err(ParseStressError::InvalidPrime));
+    /// assert_eq!(Stress::from_str("z"), Err(ParseStressError::InvalidFormat));
+    /// ```
     pub const fn from_str(text: &str) -> Result<Self, ParseStressError> {
         let text = text.as_bytes();
 
@@ -281,6 +531,22 @@ impl DualStress {
             None => Ok(Self::new(Stress::from_str_or_empty(text)?, Stress::Zero)),
         }
     }
+    /// Parses a [`DualStress`] value from a string slice.
+    ///
+    /// The string is expected to be of format: `<main>/<alt>` or `<main>` (`alt` is zero).
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::{DualStress, ParseStressError, Stress};
+    /// #
+    /// assert_eq!(DualStress::from_str("a"), Ok(DualStress::new(Stress::A, Stress::Zero)));
+    /// assert_eq!(DualStress::from_str("a'/b"), Ok(DualStress::new(Stress::Ap, Stress::B)));
+    /// assert_eq!(DualStress::from_str("c/f\""), Ok(DualStress::new(Stress::C, Stress::Fpp)));
+    ///
+    /// assert_eq!(DualStress::from_str(""), Err(ParseStressError::Empty));
+    /// assert_eq!(DualStress::from_str("c/e″"), Err(ParseStressError::InvalidPrime));
+    /// assert_eq!(DualStress::from_str("x/y"), Err(ParseStressError::InvalidFormat));
+    /// ```
     pub fn from_str(text: &str) -> Result<Self, ParseStressError> {
         match text.split_once('/') {
             Some((left, right)) => Ok(Self::new(
