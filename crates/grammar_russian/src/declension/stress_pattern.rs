@@ -303,19 +303,26 @@ impl From<Stress> for DualStress {
 }
 
 impl DualStress {
-    /// Normalizes the dual stress for use by adjectives.
+    /// Converts dual stress from shortened dictionary form (as specified for _adjectives_)
+    /// to the full normalized form that's easier to process (e.g. `c'` to `c/c'`).
     ///
     /// If alternative stress is zero, then it is set to main, and main is unprimed.
     ///
     /// # Examples
     /// ```
-    /// use grammar_russian::declension::{DualStress as Dual, Stress::*};
+    /// # use grammar_russian::declension::DualStress;
+    /// #
+    /// assert_normalize_adj("a/b", "a/b");
+    /// assert_normalize_adj("a", "a/a");
+    /// assert_normalize_adj("b", "b/b");
+    /// assert_normalize_adj("c'", "c/c'");
+    /// assert_normalize_adj("f\"", "f/f\"");
     ///
-    /// assert_eq!(Dual::new(A, B).normalize_adj(), Dual::new(A, B));
-    /// assert_eq!(Dual::new(A, Zero).normalize_adj(), Dual::new(A, A));
-    /// assert_eq!(Dual::new(B, Zero).normalize_adj(), Dual::new(B, B));
-    /// assert_eq!(Dual::new(Cp, Zero).normalize_adj(), Dual::new(C, Cp));
-    /// assert_eq!(Dual::new(Fpp, Zero).normalize_adj(), Dual::new(F, Fpp));
+    /// fn assert_normalize_adj(left: &str, right: &str) {
+    ///   let left: DualStress = left.parse().unwrap();
+    ///   let right: DualStress = right.parse().unwrap();
+    ///   assert_eq!(left.normalize_adj(), right);
+    /// }
     /// ```
     pub const fn normalize_adj(self) -> Self {
         if self.alt.is_zero() {
@@ -323,23 +330,85 @@ impl DualStress {
         }
         self
     }
-    /// Normalizes the dual stress for use by verbs.
+    /// Converts dual stress from shortened dictionary form (as specified for _verbs_)
+    /// to the full normalized form that's easier to process (e.g. `c'` to `c'/a`).
     ///
     /// If alternative stress is zero, then it is set to `a`.
     ///
     /// # Examples
     /// ```
-    /// use grammar_russian::declension::{DualStress as Dual, Stress::*};
+    /// # use grammar_russian::declension::DualStress;
+    /// #
+    /// assert_normalize_verb("a/b", "a/b");
+    /// assert_normalize_verb("a", "a/a");
+    /// assert_normalize_verb("b", "b/a");
+    /// assert_normalize_verb("c'", "c'/a");
+    /// assert_normalize_verb("f\"", "f\"/a");
     ///
-    /// assert_eq!(Dual::new(A, B).normalize_verb(), Dual::new(A, B));
-    /// assert_eq!(Dual::new(A, Zero).normalize_verb(), Dual::new(A, A));
-    /// assert_eq!(Dual::new(B, Zero).normalize_verb(), Dual::new(B, A));
-    /// assert_eq!(Dual::new(Cp, Zero).normalize_verb(), Dual::new(Cp, A));
-    /// assert_eq!(Dual::new(Fpp, Zero).normalize_verb(), Dual::new(Fpp, A));
+    /// fn assert_normalize_verb(left: &str, right: &str) {
+    ///   let left: DualStress = left.parse().unwrap();
+    ///   let right: DualStress = right.parse().unwrap();
+    ///   assert_eq!(left.normalize_verb(), right);
+    /// }
     /// ```
     pub const fn normalize_verb(self) -> Self {
         if self.alt.is_zero() {
             return Self::new(self.main, Stress::A);
+        }
+        self
+    }
+
+    /// Converts dual stress from normalized form to shortened dictionary form
+    /// (as specified for _adjectives_, e.g. `c/c'` to `c'`).
+    ///
+    /// If main stress is equal to unprimed alternative stress, alternative is set to 0.
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::DualStress;
+    /// #
+    /// assert_shorten_adj("a/b", "a/b");
+    /// assert_shorten_adj("a/a", "a");
+    /// assert_shorten_adj("b/b", "b");
+    /// assert_shorten_adj("c/c'", "c'");
+    /// assert_shorten_adj("f/f\"", "f\"");
+    ///
+    /// fn assert_shorten_adj(left: &str, right: &str) {
+    ///   let left: DualStress = left.parse().unwrap();
+    ///   let right: DualStress = right.parse().unwrap();
+    ///   assert_eq!(left.shorten_adj(), right);
+    /// }
+    /// ```
+    pub const fn shorten_adj(self) -> Self {
+        if self.main as u8 == self.alt.unprime() as u8 {
+            return Self::new(self.alt, Stress::Zero);
+        }
+        self
+    }
+    /// Converts dual stress from normalized form to shortened dictionary form
+    /// (as specified for _verbs_, e.g. `c'/a` to `c'`).
+    ///
+    /// If alternative stress is `a`, then it is set to 0.
+    ///
+    /// # Examples
+    /// ```
+    /// # use grammar_russian::declension::DualStress;
+    /// #
+    /// assert_shorten_verb("a/b", "a/b");
+    /// assert_shorten_verb("a/a", "a");
+    /// assert_shorten_verb("b/a", "b");
+    /// assert_shorten_verb("c'/a", "c'");
+    /// assert_shorten_verb("f\"/a", "f\"");
+    ///
+    /// fn assert_shorten_verb(left: &str, right: &str) {
+    ///   let left: DualStress = left.parse().unwrap();
+    ///   let right: DualStress = right.parse().unwrap();
+    ///   assert_eq!(left.shorten_verb(), right);
+    /// }
+    /// ```
+    pub const fn shorten_verb(self) -> Self {
+        if self.alt as u8 == Stress::A as u8 {
+            return Self::new(self.main, Stress::Zero);
         }
         self
     }
