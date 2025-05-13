@@ -1,3 +1,5 @@
+use crate::categories::{Case, Gender, HasAnimacy, HasCase, HasGender, HasNumber, Number};
+
 /// Represents a Russian stress schema.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Stress {
@@ -411,6 +413,77 @@ impl DualStress {
             return Self::new(self.main, Stress::Zero);
         }
         self
+    }
+}
+
+impl Stress {
+    pub fn is_noun_ending_stressed(
+        self,
+        info: impl HasCase + HasNumber,
+        animacy: impl HasAnimacy,
+    ) -> bool {
+        match self {
+            Stress::A => false,
+            Stress::B => true,
+            Stress::C => info.is_plural(),
+            Stress::D => info.is_singular(),
+            Stress::E => info.is_plural() && !info.case().is_nom_normalized(animacy),
+            Stress::F => info.is_singular() || !info.case().is_nom_normalized(animacy),
+            Stress::Bp => info.is_plural() || !matches!(info.case(), Case::Instrumental),
+            Stress::Dp => info.is_singular() && !matches!(info.case(), Case::Accusative),
+            Stress::Fp => match info.number() {
+                Number::Singular => !matches!(info.case(), Case::Accusative),
+                Number::Plural => !info.case().is_nom_normalized(animacy),
+            },
+            Stress::Fpp => match info.number() {
+                Number::Singular => !matches!(info.case(), Case::Instrumental),
+                Number::Plural => !info.case().is_nom_normalized(animacy),
+            },
+            _ => todo!(),
+        }
+    }
+    pub fn is_adj_ending_stressed(self, info: impl HasGender) -> bool {
+        match self {
+            Stress::A => false,
+            Stress::B => true,
+            Stress::C => matches!(info.gender(), Gender::Feminine),
+
+            // Stresses with primes are kind of ambiguous...
+            //   Ap:  F - ???,    N - stem,   Pl - stem
+            //   Bp:  F - ending, N - ending, Pl - ???
+            //   Cp:  F - ending, N - stem,   Pl - ???
+            //   Cpp: F - ending, N - ???,    Pl - ???
+            //
+            // I decided to set these values for now:
+            //   Ap:  F - stem,   N - stem,   Pl - stem
+            //   Bp:  F - ending, N - ending, Pl - ending
+            //   Cp:  F - ending, N - stem,   Pl - ending
+            //   Cpp: F - ending, N - ending, Pl - ending
+            //
+            Stress::Ap => false,
+            Stress::Bp => matches!(
+                info.gender(),
+                Gender::Neuter | Gender::Feminine | Gender::Common
+            ),
+            Stress::Cp => matches!(info.gender(), Gender::Feminine | Gender::Common),
+            Stress::Cpp => matches!(
+                info.gender(),
+                Gender::Neuter | Gender::Feminine | Gender::Common
+            ),
+            _ => todo!(),
+        }
+    }
+    pub fn is_pro_ending_stressed(
+        self,
+        info: impl HasCase + HasNumber,
+        animacy: impl HasAnimacy,
+    ) -> bool {
+        match self {
+            Stress::A => false,
+            Stress::B => true,
+            Stress::F => info.is_singular() || !info.case().is_nom_normalized(animacy),
+            _ => todo!(),
+        }
     }
 }
 
