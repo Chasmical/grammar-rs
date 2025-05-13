@@ -451,23 +451,22 @@ impl std::fmt::Display for DualStress {
 /// Error returned when a [`Stress`] or [`DualStress`] cannot be parsed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParseStressError {
-    /// The given string slice was empty.
-    Empty,
     /// Invalid double-primed letter, such as a″, b″, d″, or e″.
     InvalidPrime,
     /// The given string slice was of a generally invalid format.
     InvalidFormat,
 }
-// TODO: impl Error/Display for ParseStressError
+impl std::fmt::Display for ParseStressError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            ParseStressError::InvalidPrime => "",
+            ParseStressError::InvalidFormat => "",
+        })
+    }
+}
+impl std::error::Error for ParseStressError {}
 
 impl Stress {
-    pub const fn from_str_or_empty(text: &str) -> Result<Self, ParseStressError> {
-        if text.is_empty() {
-            Ok(Stress::Zero)
-        } else {
-            Self::from_str(text)
-        }
-    }
     /// Parses a [`Stress`] value from a string slice.
     ///
     /// The string is expected to be a lowercase latin letter (`a-f`), optionally
@@ -479,11 +478,11 @@ impl Stress {
     /// ```
     /// # use grammar_russian::declension::{ParseStressError, Stress};
     /// #
+    /// assert_eq!(Stress::from_str(""), Ok(Stress::Zero));
     /// assert_eq!(Stress::from_str("a"), Ok(Stress::A));
     /// assert_eq!(Stress::from_str("b′"), Ok(Stress::Bp));
     /// assert_eq!(Stress::from_str("c″"), Ok(Stress::Cpp));
     ///
-    /// assert_eq!(Stress::from_str(""), Err(ParseStressError::Empty));
     /// assert_eq!(Stress::from_str("e″"), Err(ParseStressError::InvalidPrime));
     /// assert_eq!(Stress::from_str("z"), Err(ParseStressError::InvalidFormat));
     /// ```
@@ -491,7 +490,7 @@ impl Stress {
         let text = text.as_bytes();
 
         let letter = match text.first() {
-            None => return Err(ParseStressError::Empty),
+            None => return Ok(Stress::Zero),
             Some(b'a') => Stress::A,
             Some(b'b') => Stress::B,
             Some(b'c') => Stress::C,
@@ -522,37 +521,30 @@ impl Stress {
     }
 }
 impl DualStress {
-    pub fn from_str_or_empty(text: &str) -> Result<Self, ParseStressError> {
-        match text.split_once('/') {
-            Some((left, right)) => Ok(Self::new(
-                Stress::from_str_or_empty(left)?,
-                Stress::from_str_or_empty(right)?,
-            )),
-            None => Ok(Self::new(Stress::from_str_or_empty(text)?, Stress::Zero)),
-        }
-    }
     /// Parses a [`DualStress`] value from a string slice.
     ///
-    /// The string is expected to be of format: `<main>/<alt>` or `<main>` (`alt` is zero).
+    /// The string is expected to be either one or two [`Stress`] values separated by `/`
+    /// (`main/alt` or `main`). The alternative stress defaults to 0.
+    ///
+    /// Usually the parsed value is then normalized with [`DualStress::normalize_adj`]
+    /// or [`DualStress::normalize_verb`] to handle dictionary shorthands.
     ///
     /// # Examples
     /// ```
     /// # use grammar_russian::declension::{DualStress, ParseStressError, Stress};
     /// #
+    /// assert_eq!(DualStress::from_str(""), Ok(DualStress::new(Stress::Zero, Stress::Zero)));
+    /// assert_eq!(DualStress::from_str("/"), Ok(DualStress::new(Stress::Zero, Stress::Zero)));
     /// assert_eq!(DualStress::from_str("a"), Ok(DualStress::new(Stress::A, Stress::Zero)));
     /// assert_eq!(DualStress::from_str("a'/b"), Ok(DualStress::new(Stress::Ap, Stress::B)));
     /// assert_eq!(DualStress::from_str("c/f\""), Ok(DualStress::new(Stress::C, Stress::Fpp)));
     ///
-    /// assert_eq!(DualStress::from_str(""), Err(ParseStressError::Empty));
     /// assert_eq!(DualStress::from_str("c/e″"), Err(ParseStressError::InvalidPrime));
     /// assert_eq!(DualStress::from_str("x/y"), Err(ParseStressError::InvalidFormat));
     /// ```
     pub fn from_str(text: &str) -> Result<Self, ParseStressError> {
         match text.split_once('/') {
-            Some((left, right)) => Ok(Self::new(
-                Stress::from_str_or_empty(left)?,
-                Stress::from_str_or_empty(right)?,
-            )),
+            Some((left, right)) => Ok(Self::new(Stress::from_str(left)?, Stress::from_str(right)?)),
             None => Ok(Self::new(Stress::from_str(text)?, Stress::Zero)),
         }
     }
@@ -629,8 +621,7 @@ mod tests {
     #[test]
     fn stress_parse() {
         // Zero/empty
-        assert_eq!(Stress::from_str(""), Err(ParseStressError::Empty));
-        assert_eq!(Stress::from_str_or_empty(""), Ok(Zero));
+        assert_eq!(Stress::from_str(""), Ok(Zero));
         // Simple
         assert_eq!(Stress::from_str("a"), Ok(A));
         assert_eq!(Stress::from_str("b"), Ok(B));
@@ -649,8 +640,7 @@ mod tests {
     #[test]
     fn dual_stress_parse() {
         // Zero/empty
-        assert_eq!(DualStress::from_str(""), Err(ParseStressError::Empty));
-        assert_eq!(DualStress::from_str_or_empty(""), Ok(DualStress::ZERO));
+        assert_eq!(DualStress::from_str(""), Ok(DualStress::ZERO));
         assert_eq!(DualStress::from_str("/"), Ok(DualStress::ZERO));
         // Main stress only
         assert_eq!(DualStress::from_str("a"), Ok(DualStress::new(A, Zero)));
