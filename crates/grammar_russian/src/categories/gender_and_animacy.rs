@@ -39,6 +39,13 @@ pub trait HasGender {
 #[const_trait]
 pub trait HasAnimacy {
     fn animacy(&self) -> Animacy;
+
+    fn is_animate(&self) -> bool {
+        matches!(self.animacy(), Animacy::Animate)
+    }
+    fn is_inanimate(&self) -> bool {
+        matches!(self.animacy(), Animacy::Inanimate)
+    }
 }
 
 // Gender and Animacy provides themselves

@@ -1,3 +1,5 @@
+use super::HasAnimacy;
+
 /// Represents one of the main 6 Russian grammatical cases.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Case {
@@ -89,12 +91,10 @@ pub trait HasCaseEx {
 pub trait HasNumber {
     fn number(&self) -> Number;
 
-    fn is_singular(&self) -> bool
-    where Self: Sized {
+    fn is_singular(&self) -> bool {
         matches!(self.number(), Number::Singular)
     }
-    fn is_plural(&self) -> bool
-    where Self: Sized {
+    fn is_plural(&self) -> bool {
         matches!(self.number(), Number::Plural)
     }
 }
@@ -214,5 +214,22 @@ impl CaseExAndNumber {
 impl From<CaseExAndNumber> for CaseAndNumber {
     fn from(value: CaseExAndNumber) -> Self {
         value.normalize()
+    }
+}
+
+impl Case {
+    pub fn is_nom_normalized(self, info: impl HasAnimacy) -> bool {
+        match self {
+            Case::Nominative => true,
+            Case::Accusative => info.is_inanimate(),
+            _ => false,
+        }
+    }
+    pub fn is_gen_normalized(self, info: impl HasAnimacy) -> bool {
+        match self {
+            Case::Genitive => true,
+            Case::Accusative => info.is_animate(),
+            _ => false,
+        }
     }
 }
