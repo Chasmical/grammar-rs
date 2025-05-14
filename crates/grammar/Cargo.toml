@@ -10,3 +10,7 @@ categories = ["data-structures", "internationalization", "localization", "text-p
 repository = "https://github.com/Chasmical/grammar-rs"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
+
+[dependencies]
+grammar_english = { path = "../grammar_english", version = "0.1.0" }
+grammar_russian = { path = "../grammar_russian", version = "0.1.0" }

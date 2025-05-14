@@ -5,17 +5,15 @@ version = 4
 [[package]]
 name = "grammar"
 version = "0.1.0"
+dependencies = [
+ "grammar_english",
+ "grammar_russian",
+]
 
 [[package]]
 name = "grammar_english"
 version = "0.1.0"
-dependencies = [
- "grammar",
-]
 
 [[package]]
 name = "grammar_russian"
 version = "0.1.0"
-dependencies = [
- "grammar",
-]
