@@ -1,4 +1,4 @@
-use super::types::*;
+use super::defs::*;
 
 //                         TABLE OF STRESS TYPE CONVERSIONS
 // ┌———————┬——————┬——————┬——————┬——————┬——————┬——————┬——————╥——————┬——————┬——————┐
@@ -18,7 +18,7 @@ use super::types::*;
 // ├———————┼——————┼——————┼——————┼——————┼——————┼——————┼——————╫——————┼——————┼——————┤
 // │ VerbP │  ██  │      │      │      │      │      │ ———— ║  ██  │      │  []  │
 // ╞═══════╪══════╪══════╪══════╪══════╪══════╪══════╪══════╬══════╪══════╪══════╡
-// │ ANY   │  []  │      │      │      │      │      │      ║ ———— │  []  │  []  │
+// │ ANY   │      │      │      │      │      │      │      ║ ———— │  []  │  []  │
 // ├———————┼——————┼——————┼——————┼——————┼——————┼——————┼——————╫——————┼——————┼——————┤
 // │ ADJ   │      │      │      │      │      │      │      ║  ██  │ ———— │      │
 // ├———————┼——————┼——————┼——————┼——————┼——————┼——————┼——————╫——————┼——————┼——————┤
@@ -29,16 +29,6 @@ use super::types::*;
 impl<T: Into<AnyStress>> From<T> for AnyDualStress {
     fn from(value: T) -> Self {
         Self::new(value.into(), None)
-    }
-}
-impl TryFrom<AnyDualStress> for AnyStress {
-    type Error = ();
-    fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
-        if value.alt.is_none() {
-            Ok(value.main)
-        } else {
-            Err(())
-        }
     }
 }
 
@@ -55,16 +45,14 @@ impl From<VerbStress> for AnyDualStress {
 
 impl From<AdjectiveFullStress> for AdjectiveStress {
     fn from(value: AdjectiveFullStress) -> Self {
-        Self::new(value, match value {
-            AdjectiveFullStress::A => AdjectiveShortStress::A,
-            AdjectiveFullStress::B => AdjectiveShortStress::B,
-        })
+        Self::new(value, AnyStress::from(value).try_into().unwrap())
     }
 }
 impl TryFrom<AdjectiveShortStress> for AdjectiveStress {
     type Error = AdjectiveFullStressError;
     fn try_from(value: AdjectiveShortStress) -> Result<Self, Self::Error> {
-        Ok(Self::new(AnyStress::from(value).try_into()?, value))
+        let full = AnyStress::from(value).unprime().try_into();
+        Ok(Self::new(full?, value))
     }
 }
 impl TryFrom<AnyStress> for AdjectiveStress {

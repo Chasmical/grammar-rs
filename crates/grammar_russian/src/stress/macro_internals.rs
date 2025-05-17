@@ -1,4 +1,4 @@
-use super::types::*;
+use super::*;
 
 #[allow(non_camel_case_types)]
 pub mod stress_names {
@@ -141,6 +141,7 @@ macro_rules! stress {
         Builder::<stress_names::$x, stress_names::$y>::build()
     }};
 }
+pub use stress;
 
 #[cfg(test)]
 mod tests {
