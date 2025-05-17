@@ -82,6 +82,14 @@ pub enum CaseExAndNumber {
 #[const_trait]
 pub trait HasCase {
     fn case(&self) -> Case;
+
+    fn is_nom_or_acc_inan(&self, animacy: impl ~const HasAnimacy + Copy) -> bool {
+        match self.case() {
+            Case::Nominative => true,
+            Case::Accusative => animacy.is_inanimate(),
+            _ => false,
+        }
+    }
 }
 #[const_trait]
 pub trait HasCaseEx {
@@ -214,22 +222,5 @@ impl CaseExAndNumber {
 impl From<CaseExAndNumber> for CaseAndNumber {
     fn from(value: CaseExAndNumber) -> Self {
         value.normalize()
-    }
-}
-
-impl Case {
-    pub fn is_nom_normalized(self, info: impl HasAnimacy) -> bool {
-        match self {
-            Case::Nominative => true,
-            Case::Accusative => info.is_inanimate(),
-            _ => false,
-        }
-    }
-    pub fn is_gen_normalized(self, info: impl HasAnimacy) -> bool {
-        match self {
-            Case::Genitive => true,
-            Case::Accusative => info.is_animate(),
-            _ => false,
-        }
     }
 }

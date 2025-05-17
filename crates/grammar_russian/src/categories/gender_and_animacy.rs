@@ -1,3 +1,5 @@
+use super::{HasNumber, Number};
+
 /// Represents a Russian grammatical gender.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Gender {
@@ -92,5 +94,33 @@ impl const HasGender for GenderAndAnimacy {
 impl const HasAnimacy for GenderAndAnimacy {
     fn animacy(&self) -> Animacy {
         unsafe { std::mem::transmute(*self as u8 & 1) }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GenderOrPlural {
+    Singular(Gender),
+    Plural,
+}
+
+impl Default for GenderOrPlural {
+    fn default() -> Self {
+        GenderOrPlural::Singular(Gender::Masculine)
+    }
+}
+impl GenderOrPlural {
+    pub const fn gender(self) -> Option<Gender> {
+        match self {
+            Self::Singular(gender) => Some(gender),
+            Self::Plural => None,
+        }
+    }
+}
+impl const HasNumber for GenderOrPlural {
+    fn number(&self) -> Number {
+        match self {
+            Self::Plural => Number::Plural,
+            _ => Number::Singular,
+        }
     }
 }
