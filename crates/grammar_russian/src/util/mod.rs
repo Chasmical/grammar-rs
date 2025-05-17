@@ -1,5 +1,5 @@
 /// Creates a simple zero-sized error struct.
-/// ```
+/// ```ignore
 /// define_error! {
 ///     /// An error for when something goes wrong.
 ///     pub struct MyError("something went wrong");
@@ -27,7 +27,7 @@ macro_rules! define_error {
 }
 
 /// `subsetof` keyword: Creates an enum, that _is a subset of_ another enum.
-/// ```
+/// ```ignore
 /// pub enum Super { A = 1, B = 2, C = 7, D = 8 }
 /// define_subenum! {
 ///     pub enum Sub subsetof Super [SubError] { A, C }
@@ -35,7 +35,7 @@ macro_rules! define_error {
 /// }
 /// ```
 /// `from` keyword: Creates an enum, _with only variant names from_ another enum.
-/// ```
+/// ```ignore
 /// pub enum Super { A = 1, B = 2, C = 7, D = 8 }
 /// define_subenum! {
 ///     pub enum Sub from Super [SubError] { A, C }
