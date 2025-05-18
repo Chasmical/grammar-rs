@@ -12,3 +12,4 @@ license = "MIT OR Apache-2.0"
 readme = "README.md"
 
 [dependencies]
+thiserror = "2"

@@ -80,16 +80,6 @@ impl TryFrom<AnyStress> for VerbStress {
     }
 }
 
-impl From<AdjectiveFullStressError> for AdjectiveStressError {
-    fn from(value: AdjectiveFullStressError) -> Self {
-        Self::Full(value)
-    }
-}
-impl From<AdjectiveShortStressError> for AdjectiveStressError {
-    fn from(value: AdjectiveShortStressError) -> Self {
-        Self::Short(value)
-    }
-}
 impl TryFrom<AnyDualStress> for AdjectiveStress {
     type Error = AdjectiveStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
@@ -99,17 +89,6 @@ impl TryFrom<AnyDualStress> for AdjectiveStress {
             let alt = value.main.try_into()?;
             Ok(Self::new(AnyStress::from(alt).try_into()?, alt))
         }
-    }
-}
-
-impl From<VerbPresentStressError> for VerbStressError {
-    fn from(value: VerbPresentStressError) -> Self {
-        Self::Present(value)
-    }
-}
-impl From<VerbPastStressError> for VerbStressError {
-    fn from(value: VerbPastStressError) -> Self {
-        Self::Past(value)
     }
 }
 impl TryFrom<AnyDualStress> for VerbStress {

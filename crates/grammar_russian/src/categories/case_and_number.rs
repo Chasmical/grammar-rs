@@ -1,4 +1,6 @@
-use crate::util::{_Into, define_error, enum_conversion};
+use thiserror::Error;
+
+use crate::util::{_Into, enum_conversion};
 
 use super::HasAnimacy;
 
@@ -29,15 +31,14 @@ pub enum Case {
     Instrumental = 4,
     Prepositional = 5,
 }
-
-define_error! {
-    pub struct CaseError("TODO");
-}
 enum_conversion! {
     impl From<Case, Error = CaseError> for CaseEx {
         Nominative, Genitive, Dative, Accusative, Instrumental, Prepositional,
     }
 }
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("TODO")]
+pub struct CaseError;
 
 /// A Russian grammatical number.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]

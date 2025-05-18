@@ -1,8 +1,7 @@
-use crate::util::{define_error, enum_conversion};
+use thiserror::Error;
 
-define_error! {
-    pub struct AnyStemTypeError("words can only have stem types 1 through 8");
-}
+use crate::util::enum_conversion;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AnyStemType {
     Type1 = 1,
@@ -14,10 +13,10 @@ pub enum AnyStemType {
     Type7 = 7,
     Type8 = 8,
 }
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("words can only have stem types 1 through 8")]
+pub struct AnyStemTypeError;
 
-define_error! {
-    pub struct NounStemTypeError("nouns can only have stem types 1 through 8");
-}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum NounStemType {
     Type1 = 1,
@@ -34,10 +33,10 @@ enum_conversion! {
         Type1, Type2, Type3, Type4, Type5, Type6, Type7, Type8,
     }
 }
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("nouns can only have stem types 1 through 8")]
+pub struct NounStemTypeError;
 
-define_error! {
-    pub struct AdjectiveStemTypeError("adjectives can only have stem types 1 through 7");
-}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AdjectiveStemType {
     Type1 = 1,
@@ -53,10 +52,10 @@ enum_conversion! {
         Type1, Type2, Type3, Type4, Type5, Type6, Type7,
     }
 }
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("adjectives can only have stem types 1 through 7")]
+pub struct AdjectiveStemTypeError;
 
-define_error! {
-    pub struct PronounStemTypeError("pronouns can only have stem types 1, 2, 4 and 6");
-}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum PronounStemType {
     Type1 = 1,
@@ -69,6 +68,9 @@ enum_conversion! {
         Type1, Type2, Type4, Type6,
     }
 }
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("pronouns can only have stem types 1, 2, 4 and 6")]
+pub struct PronounStemTypeError;
 
 // TODO: From<Any> for Noun (full mapping)
 // TODO: TryFrom for noun -> adjective, etc.

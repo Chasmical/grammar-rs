@@ -29,34 +29,6 @@ impl<T, U: ~const _TryFrom<T>> const _TryInto<U> for T {
     }
 }
 
-/// Creates a simple zero-sized error struct.
-/// ```ignore
-/// define_error! {
-///     /// An error for when something goes wrong.
-///     pub struct MyError("something went wrong");
-/// }
-/// ```
-/// Automatically derives [`Debug`], [`Default`], [`Clone`], [`Copy`], [`PartialEq`], [`Eq`].
-///
-/// Implements [`std::fmt::Display`] with given error message, and [`std::error::Error`].
-macro_rules! define_error {
-    (
-        $(#[$meta:meta])*
-        $vis:vis struct $err:ident($msg:literal);
-    ) => (
-        $(#[$meta])*
-        #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-        $vis struct $err;
-
-        impl std::fmt::Display for $err {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                $msg.fmt(f)
-            }
-        }
-        impl std::error::Error for $err {}
-    );
-}
-
 macro_rules! enum_conversion {
     (
         impl From<$a:ty, Error = $err:ty> for $b:ty {
@@ -100,4 +72,4 @@ macro_rules! enum_conversion {
     );
 }
 
-pub(crate) use {define_error, enum_conversion};
+pub(crate) use enum_conversion;
