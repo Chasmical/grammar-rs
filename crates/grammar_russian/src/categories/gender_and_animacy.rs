@@ -62,13 +62,6 @@ impl const HasAnimacy for Animacy {
     }
 }
 
-// Combining Gender with Animacy
-impl Gender {
-    pub const fn with(self, animacy: Animacy) -> GenderAndAnimacy {
-        GenderAndAnimacy::new(self, animacy)
-    }
-}
-
 // Constructing and deconstructing GenderAndAnimacy
 impl GenderAndAnimacy {
     pub const fn try_new(gender: Gender, animacy: Animacy) -> Option<GenderAndAnimacy> {
@@ -86,6 +79,11 @@ impl From<(Gender, Animacy)> for GenderAndAnimacy {
         Self::new(value.0, value.1)
     }
 }
+impl Gender {
+    pub const fn with(self, animacy: Animacy) -> GenderAndAnimacy {
+        GenderAndAnimacy::new(self, animacy)
+    }
+}
 impl const HasGender for GenderAndAnimacy {
     fn gender(&self) -> Gender {
         unsafe { std::mem::transmute(*self as u8 >> 1) }
@@ -97,23 +95,23 @@ impl const HasAnimacy for GenderAndAnimacy {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum GenderOrPlural {
-    Singular(Gender),
+    #[default]
+    Masculine,
+    Neuter,
+    Feminine,
     Plural,
 }
 
-impl Default for GenderOrPlural {
-    fn default() -> Self {
-        GenderOrPlural::Singular(Gender::Masculine)
-    }
-}
 impl GenderOrPlural {
     pub const fn gender(self) -> Option<Gender> {
-        match self {
-            Self::Singular(gender) => Some(gender),
-            Self::Plural => None,
-        }
+        Some(match self {
+            Self::Masculine => Gender::Masculine,
+            Self::Neuter => Gender::Neuter,
+            Self::Feminine => Gender::Feminine,
+            Self::Plural => return None,
+        })
     }
 }
 impl const HasNumber for GenderOrPlural {

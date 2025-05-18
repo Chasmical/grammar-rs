@@ -1,19 +1,10 @@
+use crate::util::{_Into, define_error, define_subenum};
+
 use super::HasAnimacy;
 
-/// Represents one of the main 6 Russian grammatical cases.
+/// One of the main or secondary Russian grammatical cases.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum Case {
-    #[default]
-    Nominative = 0,
-    Genitive = 1,
-    Dative = 2,
-    Accusative = 3,
-    Instrumental = 4,
-    Prepositional = 5,
-}
-
-/// Represents a Russian grammatical case (including secondary ones).
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum CaseEx {
     #[default]
     Nominative = 0,
@@ -27,8 +18,24 @@ pub enum CaseEx {
     Translative = 7,
     Locative = 8,
 }
+define_error! {
+    pub struct CaseError("TODO");
+}
+define_subenum! {
+    /// One of the main 6 Russian grammatical cases.
+    #[derive(Default)]
+    pub enum Case subsetof CaseEx [CaseError] {
+        #[default]
+        Nominative,
+        Genitive,
+        Dative,
+        Accusative,
+        Instrumental,
+        Prepositional,
+    }
+}
 
-/// Represents a Russian grammatical number.
+/// A Russian grammatical number.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Number {
     #[default]
@@ -36,24 +43,7 @@ pub enum Number {
     Plural = 1,
 }
 
-/// A composite of both [`Case`] and [`Number`] as one value.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum CaseAndNumber {
-    #[default]
-    NominativeSingular = 0,
-    NominativePlural = 1,
-    GenitiveSingular = 2,
-    GenitivePlural = 3,
-    DativeSingular = 4,
-    DativePlural = 5,
-    AccusativeSingular = 6,
-    AccusativePlural = 7,
-    InstrumentalSingular = 8,
-    InstrumentalPlural = 9,
-    PrepositionalSingular = 10,
-    PrepositionalPlural = 11,
-}
-/// A composite of both [`CaseEx`] and [`Number`] as one value.
+/// [`CaseEx`] and [`Number`] as one value.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum CaseExAndNumber {
     #[default]
@@ -77,19 +67,30 @@ pub enum CaseExAndNumber {
     LocativeSingular = 16,
     LocativePlural = 17,
 }
+define_subenum! {
+    /// [`Case`] and [`Number`] as one value.
+    #[derive(Default)]
+    pub enum CaseAndNumber subsetof CaseExAndNumber [CaseError] {
+        #[default]
+        NominativeSingular,
+        NominativePlural,
+        GenitiveSingular,
+        GenitivePlural,
+        DativeSingular,
+        DativePlural,
+        AccusativeSingular,
+        AccusativePlural,
+        InstrumentalSingular,
+        InstrumentalPlural,
+        PrepositionalSingular,
+        PrepositionalPlural,
+    }
+}
 
 // Traits providing Case, CaseEx and Number values
 #[const_trait]
 pub trait HasCase {
     fn case(&self) -> Case;
-
-    fn is_nom_or_acc_inan(&self, animacy: impl ~const HasAnimacy + Copy) -> bool {
-        match self.case() {
-            Case::Nominative => true,
-            Case::Accusative => animacy.is_inanimate(),
-            _ => false,
-        }
-    }
 }
 #[const_trait]
 pub trait HasCaseEx {
@@ -126,31 +127,8 @@ impl const HasNumber for Number {
 // Any type implementing HasCase implements HasCaseEx as well
 impl<T: ~const HasCase> const HasCaseEx for T {
     fn case_ex(&self) -> CaseEx {
-        self.case().as_ex()
-    }
-}
-
-// Casting Case to CaseEx
-impl Case {
-    pub const fn as_ex(self) -> CaseEx {
-        unsafe { std::mem::transmute(self) }
-    }
-}
-impl From<Case> for CaseEx {
-    fn from(value: Case) -> Self {
-        value.as_ex()
-    }
-}
-
-// Combining Case and CaseEx with Number
-impl Case {
-    pub const fn with(self, number: Number) -> CaseAndNumber {
-        CaseAndNumber::new(self, number)
-    }
-}
-impl CaseEx {
-    pub const fn with(self, number: Number) -> CaseExAndNumber {
-        CaseExAndNumber::new(self, number)
+        // FIXME(const-hack): Replace with into().
+        self.case()._into()
     }
 }
 
@@ -165,6 +143,11 @@ impl From<(Case, Number)> for CaseAndNumber {
         Self::new(value.0, value.1)
     }
 }
+impl Case {
+    pub const fn with(self, number: Number) -> CaseAndNumber {
+        CaseAndNumber::new(self, number)
+    }
+}
 impl const HasCase for CaseAndNumber {
     fn case(&self) -> Case {
         unsafe { std::mem::transmute(*self as u8 >> 1) }
@@ -175,6 +158,7 @@ impl const HasNumber for CaseAndNumber {
         unsafe { std::mem::transmute(*self as u8 & 1) }
     }
 }
+
 // Constructing and deconstructing CaseExAndNumber
 impl CaseExAndNumber {
     pub const fn new(case_ex: CaseEx, number: Number) -> Self {
@@ -184,6 +168,11 @@ impl CaseExAndNumber {
 impl From<(CaseEx, Number)> for CaseExAndNumber {
     fn from(value: (CaseEx, Number)) -> Self {
         Self::new(value.0, value.1)
+    }
+}
+impl CaseEx {
+    pub const fn with(self, number: Number) -> CaseExAndNumber {
+        CaseExAndNumber::new(self, number)
     }
 }
 impl const HasCaseEx for CaseExAndNumber {
@@ -197,19 +186,14 @@ impl const HasNumber for CaseExAndNumber {
     }
 }
 
-// Casting CaseAndNumber to CaseExAndNumber
+// Converting between CaseAndNumber and CaseExAndNumber
 impl CaseAndNumber {
     pub const fn as_ex(self) -> CaseExAndNumber {
         unsafe { std::mem::transmute(self) }
     }
 }
-impl From<CaseAndNumber> for CaseExAndNumber {
-    fn from(value: CaseAndNumber) -> Self {
-        value.as_ex()
-    }
-}
-// Normalizing CaseExAndNumber to CaseAndNumber
 impl CaseExAndNumber {
+    // TODO: resolve conflicting into impl???
     pub const fn normalize(self) -> CaseAndNumber {
         match self.case_ex() {
             CaseEx::Partitive => CaseAndNumber::new(Case::Genitive, self.number()),
@@ -219,8 +203,13 @@ impl CaseExAndNumber {
         }
     }
 }
-impl From<CaseExAndNumber> for CaseAndNumber {
-    fn from(value: CaseExAndNumber) -> Self {
-        value.normalize()
+
+impl Case {
+    pub const fn is_nom_or_acc_inan(self, animacy: impl ~const HasAnimacy + Copy) -> bool {
+        match self {
+            Self::Nominative => true,
+            Self::Accusative => animacy.is_inanimate(),
+            _ => false,
+        }
     }
 }

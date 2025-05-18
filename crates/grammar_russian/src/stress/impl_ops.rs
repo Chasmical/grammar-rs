@@ -64,17 +64,17 @@ impl NounStress {
             Self::B => false,
             Self::C => info.is_singular(),
             Self::D => info.is_plural(),
-            Self::E => info.is_singular() || info.is_nom_or_acc_inan(animacy),
-            Self::F => info.is_plural() && info.is_nom_or_acc_inan(animacy),
+            Self::E => info.is_singular() || info.case().is_nom_or_acc_inan(animacy),
+            Self::F => info.is_plural() && info.case().is_nom_or_acc_inan(animacy),
             Self::Bp => info.is_singular() && matches!(info.case(), Case::Instrumental),
             Self::Dp => info.is_plural() || matches!(info.case(), Case::Accusative),
             Self::Fp => match info.number() {
                 Number::Singular => matches!(info.case(), Case::Accusative),
-                Number::Plural => info.is_nom_or_acc_inan(animacy),
+                Number::Plural => info.case().is_nom_or_acc_inan(animacy),
             },
             Self::Fpp => match info.number() {
                 Number::Singular => matches!(info.case(), Case::Instrumental),
-                Number::Plural => info.is_nom_or_acc_inan(animacy),
+                Number::Plural => info.case().is_nom_or_acc_inan(animacy),
             },
         }
     }
@@ -97,16 +97,16 @@ impl AdjectiveFullStress {
 }
 impl AdjectiveShortStress {
     pub const fn is_stem_stressed(self, info: GenderOrPlural) -> bool {
-        use {Gender as G, GenderOrPlural as GP};
+        use GenderOrPlural as GP;
 
         match self {
             Self::A => true,
             Self::B => false,
-            Self::C => matches!(info, GP::Singular(G::Masculine | G::Neuter) | GP::Plural),
+            Self::C => matches!(info, GP::Masculine | GP::Neuter | GP::Plural),
             Self::Ap => true,
-            Self::Bp => matches!(info, GP::Singular(G::Masculine)),
-            Self::Cp => matches!(info, GP::Singular(G::Masculine | G::Neuter)),
-            Self::Cpp => matches!(info, GP::Singular(G::Masculine | G::Neuter)),
+            Self::Bp => matches!(info, GP::Masculine),
+            Self::Cp => matches!(info, GP::Masculine | GP::Neuter),
+            Self::Cpp => matches!(info, GP::Masculine | GP::Neuter),
         }
     }
     pub const fn is_ending_stressed(self, info: GenderOrPlural) -> bool {
@@ -123,7 +123,7 @@ impl PronounStress {
         match self {
             PronounStress::A => true,
             PronounStress::B => false,
-            PronounStress::F => info.is_plural() && info.is_nom_or_acc_inan(animacy),
+            PronounStress::F => info.is_plural() && info.case().is_nom_or_acc_inan(animacy),
         }
     }
     pub const fn is_ending_stressed(
