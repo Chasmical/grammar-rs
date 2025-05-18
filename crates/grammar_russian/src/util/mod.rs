@@ -57,91 +57,47 @@ macro_rules! define_error {
     );
 }
 
-/// `subsetof` keyword: Creates an enum, that _is a subset of_ another enum.
-/// ```ignore
-/// pub enum Super { A = 1, B = 2, C = 7, D = 8 }
-/// define_subenum! {
-///     pub enum Sub subsetof Super [SubError] { A, C }
-///     // A and C will inherit values from Super (1 and 7)
-/// }
-/// ```
-/// `from` keyword: Creates an enum, _with only variant names from_ another enum.
-/// ```ignore
-/// pub enum Super { A = 1, B = 2, C = 7, D = 8 }
-/// define_subenum! {
-///     pub enum Sub from Super [SubError] { A, C }
-///     // A and C are numbered independently (0 and 1)
-/// }
-/// ```
-/// Automatically derives [`Debug`], [`Clone`], [`Copy`], [`PartialEq`], [`Eq`].
-///
-/// Implements [`TryFrom<Super>`] for `Sub` and [`From<Sub>`] for `Super`.
-macro_rules! define_subenum {
+macro_rules! enum_conversion {
     (
-        $(#[$outer:meta])*
-        $vis:vis enum $t:ident from $src:ty [$err:ty] {
-            $( $(#[$inner:meta])* $variant:ident, )*
+        impl From<$a:ty, Error = $err:ty> for $b:ty {
+            $($variant:ident,)*
         }
     ) => (
-        $(#[$outer])*
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        $vis enum $t {
-            $( $(#[$inner])* $variant, )*
+        impl const $crate::util::_From<$a> for $b {
+            fn _from(value: $a) -> Self {
+                match value {
+                    $(<$a>::$variant => Self::$variant,)*
+                }
+            }
         }
-
-        define_subenum! { @from_impl $t, $src, $err, $($variant)* }
-    );
-    (
-        $(#[$outer:meta])*
-        $vis:vis enum $t:ident subsetof $src:ty [$err:ty] {
-            $( $(#[$inner:meta])* $variant:ident, )*
+        impl From<$a> for $b {
+            fn from(value: $a) -> Self {
+                match value {
+                    $(<$a>::$variant => Self::$variant,)*
+                }
+            }
         }
-    ) => (
-        $(#[$outer])*
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        $vis enum $t {
-            $( $(#[$inner])* $variant = <$src>::$variant as _, )*
-        }
-
-        define_subenum! { @from_impl $t, $src, $err, $($variant)* }
-    );
-
-    (@from_impl $t:ident, $src:ty, $err:ty, $($variant:ident)*) => (
-        impl const $crate::util::_TryFrom<$src> for $t {
+        impl const $crate::util::_TryFrom<$b> for $a {
             type Error = $err;
             #[allow(unreachable_patterns)]
-            fn _try_from(value: $src) -> Result<Self, Self::Error> {
+            fn _try_from(value: $b) -> Result<Self, Self::Error> {
                 Ok(match value {
-                    $( <$src>::$variant => $t::$variant, )*
+                    $( <$b>::$variant => Self::$variant, )*
                     _ => return Err(Self::Error {}),
                 })
             }
         }
-        impl TryFrom<$src> for $t {
+        impl TryFrom<$b> for $a {
             type Error = $err;
             #[allow(unreachable_patterns)]
-            fn try_from(value: $src) -> Result<Self, Self::Error> {
+            fn try_from(value: $b) -> Result<Self, Self::Error> {
                 Ok(match value {
-                    $( <$src>::$variant => $t::$variant, )*
+                    $( <$b>::$variant => Self::$variant, )*
                     _ => return Err(Self::Error {}),
                 })
-            }
-        }
-        impl const $crate::util::_From<$t> for $src {
-            fn _from(value: $t) -> Self {
-                match value {
-                    $( $t::$variant => Self::$variant, )*
-                }
-            }
-        }
-        impl From<$t> for $src {
-            fn from(value: $t) -> Self {
-                match value {
-                    $( $t::$variant => Self::$variant, )*
-                }
             }
         }
     );
 }
 
-pub(crate) use {define_error, define_subenum};
+pub(crate) use {define_error, enum_conversion};

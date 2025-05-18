@@ -1,4 +1,4 @@
-use crate::util::{_Into, define_error, define_subenum};
+use crate::util::{_Into, define_error, enum_conversion};
 
 use super::HasAnimacy;
 
@@ -18,20 +18,24 @@ pub enum CaseEx {
     Translative = 7,
     Locative = 8,
 }
+/// One of the main 6 Russian grammatical cases.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum Case {
+    #[default]
+    Nominative = 0,
+    Genitive = 1,
+    Dative = 2,
+    Accusative = 3,
+    Instrumental = 4,
+    Prepositional = 5,
+}
+
 define_error! {
     pub struct CaseError("TODO");
 }
-define_subenum! {
-    /// One of the main 6 Russian grammatical cases.
-    #[derive(Default)]
-    pub enum Case subsetof CaseEx [CaseError] {
-        #[default]
-        Nominative,
-        Genitive,
-        Dative,
-        Accusative,
-        Instrumental,
-        Prepositional,
+enum_conversion! {
+    impl From<Case, Error = CaseError> for CaseEx {
+        Nominative, Genitive, Dative, Accusative, Instrumental, Prepositional,
     }
 }
 
@@ -67,23 +71,32 @@ pub enum CaseExAndNumber {
     LocativeSingular = 16,
     LocativePlural = 17,
 }
-define_subenum! {
-    /// [`Case`] and [`Number`] as one value.
-    #[derive(Default)]
-    pub enum CaseAndNumber subsetof CaseExAndNumber [CaseError] {
-        #[default]
-        NominativeSingular,
-        NominativePlural,
-        GenitiveSingular,
-        GenitivePlural,
-        DativeSingular,
-        DativePlural,
-        AccusativeSingular,
-        AccusativePlural,
-        InstrumentalSingular,
-        InstrumentalPlural,
-        PrepositionalSingular,
-        PrepositionalPlural,
+/// [`Case`] and [`Number`] as one value.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum CaseAndNumber {
+    #[default]
+    NominativeSingular = 0,
+    NominativePlural = 1,
+    GenitiveSingular = 2,
+    GenitivePlural = 3,
+    DativeSingular = 4,
+    DativePlural = 5,
+    AccusativeSingular = 6,
+    AccusativePlural = 7,
+    InstrumentalSingular = 8,
+    InstrumentalPlural = 9,
+    PrepositionalSingular = 10,
+    PrepositionalPlural = 11,
+}
+
+enum_conversion! {
+    impl From<CaseAndNumber, Error = CaseError> for CaseExAndNumber {
+        NominativeSingular, NominativePlural,
+        GenitiveSingular, GenitivePlural,
+        DativeSingular, DativePlural,
+        AccusativeSingular, AccusativePlural,
+        InstrumentalSingular, InstrumentalPlural,
+        PrepositionalSingular, PrepositionalPlural,
     }
 }
 
@@ -186,12 +199,6 @@ impl const HasNumber for CaseExAndNumber {
     }
 }
 
-// Converting between CaseAndNumber and CaseExAndNumber
-impl CaseAndNumber {
-    pub const fn as_ex(self) -> CaseExAndNumber {
-        unsafe { std::mem::transmute(self) }
-    }
-}
 impl CaseExAndNumber {
     // TODO: resolve conflicting into impl???
     pub const fn normalize(self) -> CaseAndNumber {
