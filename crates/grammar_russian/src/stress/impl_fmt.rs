@@ -202,6 +202,7 @@ macro_rules! derive_stress_impls {
         }
         impl std::fmt::Display for $t {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                // TODO: there should be a special constructor, that converts `a/a` to `a`
                 <$src>::from(*self).fmt(f)
             }
         }
@@ -211,4 +212,77 @@ macro_rules! derive_stress_impls {
 derive_stress_impls! {
     AnyStress: [NounStress, PronounStress, AdjectiveFullStress, AdjectiveShortStress, VerbPresentStress, VerbPastStress],
     AnyDualStress: [AdjectiveStress, VerbStress]
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::stress::*;
+
+    #[test]
+    fn fmt() {
+        fn assert<T: std::fmt::Display>(value: T, expected: &str) {
+            assert_eq!(value.to_string(), expected);
+        }
+
+        assert(AnyStress::A, "a");
+        assert(AnyStress::B, "b");
+        assert(AnyStress::C, "c");
+        assert(AnyStress::D, "d");
+        assert(AnyStress::E, "e");
+        assert(AnyStress::F, "f");
+        assert(AnyStress::Ap, "a′");
+        assert(AnyStress::Bp, "b′");
+        assert(AnyStress::Cp, "c′");
+        assert(AnyStress::Dp, "d′");
+        assert(AnyStress::Ep, "e′");
+        assert(AnyStress::Fp, "f′");
+        assert(AnyStress::Cpp, "c″");
+        assert(AnyStress::Fpp, "f″");
+
+        assert::<AnyDualStress>(stress![a], "a");
+        assert::<AnyDualStress>(stress![f], "f");
+        assert::<AnyDualStress>(stress![b1], "b′");
+        assert::<AnyDualStress>(stress![e1], "e′");
+        assert::<AnyDualStress>(stress![c2], "c″");
+        assert::<AnyDualStress>(stress![f2], "f″");
+        assert::<AnyDualStress>(stress![a / a], "a/a");
+        assert::<AnyDualStress>(stress![a / f1], "a/f′");
+        assert::<AnyDualStress>(stress![c1 / e], "c′/e");
+        assert::<AnyDualStress>(stress![f2 / c2], "f″/c″");
+    }
+
+    #[test]
+    fn parse() {
+        type Error = ParseStressError;
+
+        assert_eq!("a".parse::<AnyStress>(), Ok(stress![a]));
+        assert_eq!("f".parse::<AnyStress>(), Ok(stress![f]));
+        assert_eq!("e'".parse::<AnyStress>(), Ok(stress![e1]));
+        assert_eq!("c\"".parse::<AnyStress>(), Ok(stress![c2]));
+
+        assert_eq!("".parse::<AnyStress>(), Err(Error::Empty));
+        assert_eq!("/".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("a/".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("/b".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("a/b".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("z".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("$a".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("a$".parse::<AnyStress>(), Err(Error::InvalidFormat));
+
+        assert_eq!("a".parse::<AnyDualStress>(), Ok(stress![a]));
+        assert_eq!("f".parse::<AnyDualStress>(), Ok(stress![f]));
+        assert_eq!("e'".parse::<AnyDualStress>(), Ok(stress![e1]));
+        assert_eq!("c\"".parse::<AnyDualStress>(), Ok(stress![c2]));
+        assert_eq!("a/b".parse::<AnyDualStress>(), Ok(stress![a / b]));
+        assert_eq!("d'/b'".parse::<AnyDualStress>(), Ok(stress![d1 / b1]));
+        assert_eq!("e'/c\"".parse::<AnyDualStress>(), Ok(stress![e1 / c2]));
+
+        assert_eq!("".parse::<AnyStress>(), Err(Error::Empty));
+        assert_eq!("/".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("a/".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("/b".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("z".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("$a/b".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("a/b$".parse::<AnyStress>(), Err(Error::InvalidFormat));
+    }
 }
