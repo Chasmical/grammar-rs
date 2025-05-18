@@ -159,28 +159,165 @@ pub use stress;
 mod tests {
     use crate::stress::*;
 
+    fn assert<T: std::fmt::Debug + PartialEq>(left: T, right: T) {
+        assert_eq!(left, right);
+    }
+    #[allow(unused)]
+    fn invalid<T: TryFrom<AnyStress>>(values: &[T]) {
+        panic!();
+    }
+
     #[test]
-    pub fn test() {
-        let x: NounStress = stress![a];
-        assert_eq!(x, NounStress::A);
-        let x: NounStress = stress![c];
-        assert_eq!(x, NounStress::C);
+    fn expand_noun() {
+        type Stress = NounStress;
 
-        let x: PronounStress = stress![a];
-        assert_eq!(x, PronounStress::A);
-        let x: PronounStress = stress![b];
-        assert_eq!(x, PronounStress::B);
+        assert(stress![a], Stress::A);
+        assert(stress![b], Stress::B);
+        assert(stress![c], Stress::C);
+        assert(stress![d], Stress::D);
+        assert(stress![e], Stress::E);
+        assert(stress![f], Stress::F);
+        assert(stress![b1], Stress::Bp);
+        assert(stress![d1], Stress::Dp);
+        assert(stress![f1], Stress::Fp);
+        assert(stress![f2], Stress::Fpp);
 
-        let x: AdjectiveFullStress = stress![b];
-        assert_eq!(x, AdjectiveFullStress::B);
-        let x: AdjectiveShortStress = stress![c2];
-        assert_eq!(x, AdjectiveShortStress::Cpp);
+        // invalid::<Stress>(&[
+        //     stress![a1],
+        //     stress![c1],
+        //     stress![e1],
+        //     stress![c2],
+        //     stress![a / b],
+        //     stress![f1 / c2],
+        // ]);
+    }
+    #[test]
+    fn expand_pro() {
+        type Stress = PronounStress;
 
-        let x: AdjectiveStress = stress![a / b];
-        assert_eq!(x, AdjectiveStress::A_B);
-        let x: AdjectiveStress = stress![b / b];
-        assert_eq!(x, AdjectiveStress::B);
-        let x: AdjectiveStress = stress![b1];
-        assert_eq!(x, AdjectiveStress::Bp);
+        assert(stress![a], Stress::A);
+        assert(stress![b], PronounStress::B);
+        assert(stress![f], PronounStress::F);
+
+        // invalid::<Stress>(&[
+        //     stress![c],
+        //     stress![a1],
+        //     stress![c2],
+        //     stress![a / b],
+        //     stress![f1 / c2],
+        // ]);
+    }
+    #[test]
+    fn expand_adj_full() {
+        type Stress = AdjectiveFullStress;
+
+        assert(stress![a], Stress::A);
+        assert(stress![b], Stress::B);
+
+        // invalid::<Stress>(&[
+        //     stress![c],
+        //     stress![a1],
+        //     stress![c2],
+        //     stress![a / b],
+        //     stress![f1 / c2],
+        // ]);
+    }
+    #[test]
+    fn expand_adj_short() {
+        type Stress = AdjectiveShortStress;
+
+        assert(stress![a], Stress::A);
+        assert(stress![b], Stress::B);
+        assert(stress![c], Stress::C);
+        assert(stress![a1], Stress::Ap);
+        assert(stress![b1], Stress::Bp);
+        assert(stress![c1], Stress::Cp);
+        assert(stress![c2], Stress::Cpp);
+
+        // invalid::<Stress>(&[
+        //     stress![d],
+        //     stress![d1],
+        //     stress![f2],
+        //     stress![a / b],
+        //     stress![f1 / c2],
+        // ]);
+    }
+    #[test]
+    fn expand_adj_dual() {
+        type Stress = AdjectiveStress;
+
+        assert(stress![a], Stress::A);
+        assert(stress![b], Stress::B);
+        assert(stress![a / b], Stress::A_B);
+        assert(stress![b / c], Stress::B_C);
+        assert(stress![a1], Stress::Ap);
+        assert(stress![b1], Stress::Bp);
+        assert(stress![a / a1], Stress::Ap);
+        assert(stress![b / b1], Stress::Bp);
+        assert(stress![b / c1], Stress::B_Cp);
+        assert(stress![a / c2], Stress::A_Cpp);
+
+        // invalid::<Stress>(&[
+        //     stress![c],
+        //     stress![c1],
+        //     stress![c2],
+        //     stress![c / b],
+        //     stress![f1 / c2],
+        // ]);
+    }
+    #[test]
+    fn expand_verb_present() {
+        type Stress = VerbPresentStress;
+
+        assert(stress![a], Stress::A);
+        assert(stress![b], Stress::B);
+        assert(stress![c], Stress::C);
+        assert(stress![c1], Stress::Cp);
+
+        // invalid::<Stress>(&[
+        //     stress![d],
+        //     stress![a1],
+        //     stress![c2],
+        //     stress![a / b],
+        //     stress![f1 / c2],
+        // ]);
+    }
+    #[test]
+    fn expand_verb_past() {
+        type Stress = VerbPastStress;
+
+        assert(stress![a], Stress::A);
+        assert(stress![b], Stress::B);
+        assert(stress![c], Stress::C);
+        assert(stress![c1], Stress::Cp);
+        assert(stress![c2], Stress::Cpp);
+
+        // invalid::<Stress>(&[
+        //     stress![d],
+        //     stress![a1],
+        //     stress![f2],
+        //     stress![a / b],
+        //     stress![f1 / c2],
+        // ]);
+    }
+    #[test]
+    fn expand_verb_dual() {
+        type Stress = VerbStress;
+
+        assert(stress![a], Stress::A);
+        assert(stress![b], Stress::B);
+        assert(stress![c], Stress::C);
+        assert(stress![c1], Stress::Cp);
+        assert(stress![c / b], Stress::C_B);
+        assert(stress![a / c1], Stress::A_Cp);
+        assert(stress![c1 / c2], Stress::Cp_Cpp);
+
+        // invalid::<Stress>(&[
+        //     stress![d],
+        //     stress![a1],
+        //     stress![f2],
+        //     stress![d / b],
+        //     stress![f1 / c2],
+        // ]);
     }
 }
