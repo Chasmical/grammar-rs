@@ -73,6 +73,7 @@ pub enum ParseStressError {
     Empty,
     InvalidPrime,
     InvalidFormat,
+    InvalidType,
 }
 
 impl AnyStress {
@@ -189,4 +190,25 @@ impl std::str::FromStr for AnyDualStress {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_str(s)
     }
+}
+
+macro_rules! derive_stress_impls {
+    ($($src:ty: [$($t:ty),*]),*) => ($($(
+        impl std::str::FromStr for $t {
+            type Err = <$src as std::str::FromStr>::Err;
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                AnyStress::from_str(s)?.try_into().or(Err(Self::Err::InvalidType))
+            }
+        }
+        impl std::fmt::Display for $t {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                <$src>::from(*self).fmt(f)
+            }
+        }
+    )*)*);
+}
+
+derive_stress_impls! {
+    AnyStress: [NounStress, PronounStress, AdjectiveFullStress, AdjectiveShortStress, VerbPresentStress, VerbPastStress],
+    AnyDualStress: [AdjectiveStress, VerbStress]
 }
