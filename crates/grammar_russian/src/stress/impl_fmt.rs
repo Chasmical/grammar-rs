@@ -123,10 +123,7 @@ impl AnyDualStress {
         }
 
         // FIXME(const-hack): Replace with `text.split_once('/')`.
-        if let Some(index) = find_slash(text) {
-            let (main, alt) = text.split_at(index);
-            let alt = alt.split_at(1).1;
-
+        if let Some((main, alt)) = split_by_slash(text) {
             return Ok(Self::new(
                 // FIXME(const-hack): Replace with `?`.
                 match AnyStress::from_str(main) {
@@ -151,16 +148,32 @@ impl AnyDualStress {
         }
 
         #[inline]
-        const fn find_slash(text: &str) -> Option<usize> {
-            let text = text.as_bytes();
-            let mut i = 0;
-            while i < text.len() {
-                if text[i] == b'/' {
-                    return Some(i);
+        const fn split_by_slash(text: &str) -> Option<(&str, &str)> {
+            let bytes = text.as_bytes();
+            // Slash can't be the first or last char, so we can just search the range 1..(N-1).
+            // Also, it doesn't matter if it splits a character in half, since AnyStress parses
+            // the string by bytes, accepting only valid UTF-8 anyway.
+            let mut i = 1;
+            while i < bytes.len() - 1 {
+                if bytes[i] == b'/' {
+                    return Some(split_by_unchecked(text, i));
                 }
                 i += 1;
             }
             None
+        }
+        #[inline]
+        const fn split_by_unchecked(text: &str, i: usize) -> (&str, &str) {
+            use std::slice;
+            let len = text.len();
+            let ptr = text.as_ptr();
+            unsafe {
+                (
+                    str::from_utf8_unchecked(slice::from_raw_parts(ptr, i)),
+                    // Unlike str::split_at_unchecked, the right part starts 1 byte later (after /)
+                    str::from_utf8_unchecked(slice::from_raw_parts(ptr.add(i + 1), len - (i + 1))),
+                )
+            }
         }
     }
 }
