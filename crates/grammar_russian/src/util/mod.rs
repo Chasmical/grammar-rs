@@ -1,3 +1,34 @@
+#[const_trait]
+pub trait _From<T>: Sized {
+    fn _from(value: T) -> Self;
+}
+#[const_trait]
+pub trait _TryFrom<T>: Sized {
+    type Error;
+    fn _try_from(value: T) -> Result<Self, Self::Error>;
+}
+#[const_trait]
+pub trait _Into<T>: Sized {
+    fn _into(self) -> T;
+}
+#[const_trait]
+pub trait _TryInto<T>: Sized {
+    type Error;
+    fn _try_into(self) -> Result<T, Self::Error>;
+}
+
+impl<T, U: ~const _From<T>> const _Into<U> for T {
+    fn _into(self) -> U {
+        U::_from(self)
+    }
+}
+impl<T, U: ~const _TryFrom<T>> const _TryInto<U> for T {
+    type Error = U::Error;
+    fn _try_into(self) -> Result<U, Self::Error> {
+        U::_try_from(self)
+    }
+}
+
 /// Creates a simple zero-sized error struct.
 /// ```ignore
 /// define_error! {
@@ -58,7 +89,7 @@ macro_rules! define_subenum {
             $( $(#[$inner])* $variant, )*
         }
 
-        define_subenum! { @define_from $t, $src, $err, $($variant)* }
+        define_subenum! { @from_impl $t, $src, $err, $($variant)* }
     );
     (
         $(#[$outer:meta])*
@@ -72,10 +103,20 @@ macro_rules! define_subenum {
             $( $(#[$inner])* $variant = <$src>::$variant as _, )*
         }
 
-        define_subenum! { @define_from $t, $src, $err, $($variant)* }
+        define_subenum! { @from_impl $t, $src, $err, $($variant)* }
     );
 
-    (@define_from $t:ident, $src:ty, $err:ty, $($variant:ident)*) => (
+    (@from_impl $t:ident, $src:ty, $err:ty, $($variant:ident)*) => (
+        impl const $crate::util::_TryFrom<$src> for $t {
+            type Error = $err;
+            #[allow(unreachable_patterns)]
+            fn _try_from(value: $src) -> Result<Self, Self::Error> {
+                Ok(match value {
+                    $( <$src>::$variant => $t::$variant, )*
+                    _ => return Err(Self::Error {}),
+                })
+            }
+        }
         impl TryFrom<$src> for $t {
             type Error = $err;
             #[allow(unreachable_patterns)]
@@ -84,6 +125,13 @@ macro_rules! define_subenum {
                     $( <$src>::$variant => $t::$variant, )*
                     _ => return Err(Self::Error {}),
                 })
+            }
+        }
+        impl const $crate::util::_From<$t> for $src {
+            fn _from(value: $t) -> Self {
+                match value {
+                    $( $t::$variant => Self::$variant, )*
+                }
             }
         }
         impl From<$t> for $src {
