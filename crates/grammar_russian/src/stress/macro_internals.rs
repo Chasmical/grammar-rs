@@ -1,7 +1,7 @@
 use super::*;
 
 #[allow(non_camel_case_types)]
-pub mod stress_names {
+pub mod aliases {
     macro_rules! define_empty_structs {
         ($($name:ident),*) => ($( pub struct $name; )*);
     }
@@ -15,12 +15,13 @@ pub trait StressConst<T> {
 
 macro_rules! define_aliases {
     ($stress:ty: $($name:ident $alias:ident),*) => ($(
-        impl const $crate::stress::macro_internals::StressConst<$stress> for stress_names::$alias {
+        impl const StressConst<$stress> for aliases::$alias {
             const STRESS: $stress = <$stress>::$name;
         }
     )*);
 }
 
+define_aliases!(AnyStress: A a, B b, C c, D d, E e, F f, Ap a1, Bp b1, Cp c1, Dp d1, Ep e1, Fp f1, Cpp c2, Fpp f2);
 define_aliases!(NounStress: A a, B b, C c, D d, E e, F f, Bp b1, Dp d1, Fp f1, Fpp f2);
 define_aliases!(PronounStress: A a, B b, F f);
 define_aliases!(AdjectiveFullStress: A a, B b);
@@ -32,63 +33,74 @@ pub struct Builder<Main, Alt>(Main, Alt);
 
 #[const_trait]
 pub trait Build<T> {
-    fn build() -> T;
+    const RESULT: T;
 }
 
-macro_rules! simple_build_fn {
-    ($($ty:ty),*) => ($(
-        impl<T: StressConst<$ty>> const Build<$ty> for Builder<T, stress_names::Unset> {
-            fn build() -> $ty {
-                T::STRESS
-            }
+macro_rules! build_fn {
+    ($($main:ty,)*) => ($(
+        impl<MAIN: StressConst<$main>> const Build<$main> for Builder<MAIN, aliases::Unset> {
+            const RESULT: $main = MAIN::STRESS;
         }
     )*);
+    (($main:ty) $res:ty, $expr:expr) => (
+        impl<MAIN: StressConst<$main>> const Build<$res> for Builder<MAIN, aliases::Unset> {
+            const RESULT: $res = $expr;
+        }
+    );
+    (($main:ty, $alt:ty) $res:ty, $expr:expr) => (
+        impl<MAIN: StressConst<$main>, ALT: StressConst<$alt>> const Build<$res> for Builder<MAIN, ALT> {
+            const RESULT: $res = $expr;
+        }
+    );
 }
 
-simple_build_fn! {
-    NounStress, PronounStress,
-    AdjectiveFullStress, AdjectiveShortStress,
-    VerbPresentStress, VerbPastStress
-}
+build_fn!(
+    AnyStress,
+    NounStress,
+    PronounStress,
+    AdjectiveFullStress,
+    AdjectiveShortStress,
+    VerbPresentStress,
+    VerbPastStress,
+);
 
-trait IsApOrBp {}
-impl IsApOrBp for stress_names::a1 {}
-impl IsApOrBp for stress_names::b1 {}
+build_fn!(
+    (AdjectiveFullStress, AdjectiveShortStress) AdjectiveStress,
+    AdjectiveStress::new(MAIN::STRESS, ALT::STRESS)
+);
+build_fn!(
+    (VerbPresentStress, VerbPastStress) VerbStress,
+    VerbStress::new(MAIN::STRESS, ALT::STRESS)
+);
+build_fn!(
+    (VerbPresentStress) VerbStress,
+    VerbStress::new(MAIN::STRESS, VerbPastStress::A)
+);
+build_fn!(
+    (AnyStress) AnyDualStress,
+    AnyDualStress::new(MAIN::STRESS, None)
+);
+build_fn!(
+    (AnyStress, AnyStress) AnyDualStress,
+    AnyDualStress::new(MAIN::STRESS, Some(ALT::STRESS))
+);
 
-impl<X: StressConst<AdjectiveFullStress>, Y: StressConst<AdjectiveShortStress>> const
-    Build<AdjectiveStress> for Builder<X, Y>
-{
-    fn build() -> AdjectiveStress {
-        AdjectiveStress::new(X::STRESS, Y::STRESS)
-    }
-}
-impl<X: StressConst<AdjectiveShortStress> + IsApOrBp> const Build<AdjectiveStress>
-    for Builder<X, stress_names::Unset>
-{
-    fn build() -> AdjectiveStress {
-        AdjectiveStress::new(
-            match X::STRESS {
-                AdjectiveShortStress::Ap => AdjectiveFullStress::A,
-                _ => AdjectiveFullStress::B,
-            },
-            X::STRESS,
-        )
-    }
-}
+pub trait IsStressAOrB {}
+impl IsStressAOrB for aliases::a {}
+impl IsStressAOrB for aliases::b {}
+impl IsStressAOrB for aliases::a1 {}
+impl IsStressAOrB for aliases::b1 {}
 
-impl<X: StressConst<VerbPresentStress>, Y: StressConst<VerbPastStress>> const Build<VerbStress>
-    for Builder<X, Y>
+impl<X: StressConst<AdjectiveShortStress> + IsStressAOrB> const Build<AdjectiveStress>
+    for Builder<X, aliases::Unset>
 {
-    fn build() -> VerbStress {
-        VerbStress::new(X::STRESS, Y::STRESS)
-    }
-}
-impl<X: StressConst<VerbPresentStress>> const Build<VerbStress>
-    for Builder<X, stress_names::Unset>
-{
-    fn build() -> VerbStress {
-        VerbStress::new(X::STRESS, VerbPastStress::A)
-    }
+    const RESULT: AdjectiveStress = AdjectiveStress::new(
+        match X::STRESS {
+            AdjectiveShortStress::A | AdjectiveShortStress::Ap => AdjectiveFullStress::A,
+            _ => AdjectiveFullStress::B,
+        },
+        X::STRESS,
+    );
 }
 
 /// Provides a quick and easy way of initializing stress values.
@@ -133,12 +145,12 @@ impl<X: StressConst<VerbPresentStress>> const Build<VerbStress>
 #[macro_export]
 macro_rules! stress {
     ($x:ident) => {{
-        use $crate::stress::macro_internals::{Build, Builder, stress_names};
-        Builder::<stress_names::$x, stress_names::Unset>::build()
+        use $crate::stress::macro_internals::{Build, Builder, aliases};
+        Builder::<aliases::$x, aliases::Unset>::RESULT
     }};
     ($x:ident/$y:ident) => {{
-        use $crate::stress::macro_internals::{Build, Builder, stress_names};
-        Builder::<stress_names::$x, stress_names::$y>::build()
+        use $crate::stress::macro_internals::{Build, Builder, aliases};
+        Builder::<aliases::$x, aliases::$y>::RESULT
     }};
 }
 pub use stress;
