@@ -125,6 +125,7 @@ impl AnyDualStress {
         // FIXME(const-hack): Replace with `text.split_once('/')`.
         if let Some(index) = find_slash(text) {
             let (main, alt) = text.split_at(index);
+            let alt = alt.split_at(1).1;
 
             return Ok(Self::new(
                 // FIXME(const-hack): Replace with `?`.
