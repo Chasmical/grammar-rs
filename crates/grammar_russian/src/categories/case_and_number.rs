@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::util::{_Into, enum_conversion};
+use crate::util::{_Into, const_traits::*, enum_conversion};
 
 use super::HasAnimacy;
 
@@ -152,11 +152,11 @@ impl CaseAndNumber {
         unsafe { std::mem::transmute(((case as u8) << 1) | number as u8) }
     }
 }
-impl From<(Case, Number)> for CaseAndNumber {
+impl_const_From!(<(Case, Number)> for CaseAndNumber {
     fn from(value: (Case, Number)) -> Self {
         Self::new(value.0, value.1)
     }
-}
+});
 impl Case {
     pub const fn with(self, number: Number) -> CaseAndNumber {
         CaseAndNumber::new(self, number)
@@ -179,11 +179,11 @@ impl CaseExAndNumber {
         unsafe { std::mem::transmute(((case_ex as u8) << 1) | number as u8) }
     }
 }
-impl From<(CaseEx, Number)> for CaseExAndNumber {
+impl_const_From!(<(CaseEx, Number)> for CaseExAndNumber {
     fn from(value: (CaseEx, Number)) -> Self {
         Self::new(value.0, value.1)
     }
-}
+});
 impl CaseEx {
     pub const fn with(self, number: Number) -> CaseExAndNumber {
         CaseExAndNumber::new(self, number)

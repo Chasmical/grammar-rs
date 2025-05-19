@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::util::enum_conversion;
+use crate::util::{const_traits::*, enum_conversion};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AnyStemType {
@@ -75,7 +75,7 @@ pub struct PronounStemTypeError;
 // TODO: From<Any> for Noun (full mapping)
 // TODO: TryFrom for noun -> adjective, etc.
 
-impl TryFrom<u8> for AnyStemType {
+impl_const_TryFrom!(<u8> for AnyStemType {
     type Error = AnyStemTypeError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         Ok(match value {
@@ -90,25 +90,37 @@ impl TryFrom<u8> for AnyStemType {
             _ => return Err(Self::Error {}),
         })
     }
-}
-impl TryFrom<u8> for NounStemType {
+});
+impl_const_TryFrom!(<u8> for NounStemType {
     type Error = NounStemTypeError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        AnyStemType::try_from(value).map_or(Err(Self::Error {}), |x| x.try_into())
+        // FIXME(const-hack): Replace with `.map_or(Err(Self::Error {}), |x| x.try_into())`.
+        match AnyStemType::_try_from(value) {
+            Ok(x) => x._try_into(),
+            Err(_) => Err(Self::Error {}),
+        }
     }
-}
-impl TryFrom<u8> for AdjectiveStemType {
+});
+impl_const_TryFrom!(<u8> for AdjectiveStemType {
     type Error = AdjectiveStemTypeError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        AnyStemType::try_from(value).map_or(Err(Self::Error {}), |x| x.try_into())
+        // FIXME(const-hack): Replace with `.map_or(Err(Self::Error {}), |x| x.try_into())`.
+        match AnyStemType::_try_from(value) {
+            Ok(x) => x._try_into(),
+            Err(_) => Err(Self::Error {}),
+        }
     }
-}
-impl TryFrom<u8> for PronounStemType {
+});
+impl_const_TryFrom!(<u8> for PronounStemType {
     type Error = PronounStemTypeError;
     fn try_from(value: u8) -> Result<Self, Self::Error> {
-        AnyStemType::try_from(value).map_or(Err(Self::Error {}), |x| x.try_into())
+        // FIXME(const-hack): Replace with `.map_or(Err(Self::Error {}), |x| x.try_into())`.
+        match AnyStemType::_try_from(value) {
+            Ok(x) => x._try_into(),
+            Err(_) => Err(Self::Error {}),
+        }
     }
-}
+});
 
 macro_rules! stem_type_display_fromstr_impl {
     ($($t:ty, $err:ty;)*) => ($(

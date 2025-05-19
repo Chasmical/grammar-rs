@@ -1,3 +1,5 @@
+use crate::util::const_traits::*;
+
 use super::{HasNumber, Number};
 
 /// Represents a Russian grammatical gender.
@@ -74,11 +76,11 @@ impl GenderAndAnimacy {
         Self::try_new(gender, animacy).unwrap()
     }
 }
-impl From<(Gender, Animacy)> for GenderAndAnimacy {
+impl_const_From!(<(Gender, Animacy)> for GenderAndAnimacy {
     fn from(value: (Gender, Animacy)) -> Self {
         Self::new(value.0, value.1)
     }
-}
+});
 impl Gender {
     pub const fn with(self, animacy: Animacy) -> GenderAndAnimacy {
         GenderAndAnimacy::new(self, animacy)
