@@ -75,4 +75,34 @@ macro_rules! impl_const_TryFrom {
     );
 }
 
-pub(crate) use {impl_const_From, impl_const_TryFrom};
+// FIXME(const-hack): Remove these when Result::unwrap is constified.
+
+#[const_trait]
+pub(crate) trait _Result<T, E> {
+    fn _unwrap(self) -> T;
+}
+impl<T, E: std::fmt::Debug> const _Result<T, E> for Result<T, E>
+where Result<T, E>: Copy
+{
+    fn _unwrap(self) -> T {
+        match self {
+            Ok(x) => x,
+            Err(_) => panic!("called `_Result::_unwrap()` on an `Err` value"),
+        }
+    }
+}
+
+// FIXME(const-hack): Remove these when ? (and From<Err>) is constified.
+
+macro_rules! const_try {
+    ($expr:expr) => (const_try!($expr, x => x));
+    ($expr:expr, $fn:path) => (const_try!($expr, x => $fn(x)));
+    ($expr:expr, $err:ident => $err_expr:expr) => ({
+        match $expr {
+            Ok(x) => x,
+            Err($err) => return Err($err_expr),
+        }
+    });
+}
+
+pub(crate) use {const_try, impl_const_From, impl_const_TryFrom};
