@@ -1,8 +1,16 @@
 #![feature(const_trait_impl)]
 #![cfg_attr(test, feature(test))]
+// Fix issues with alphabet::letters::*
+#![allow(confusable_idents, non_upper_case_globals)]
 
 mod util;
 
 pub mod categories;
 pub mod declension;
 pub mod stress;
+
+mod alphabet;
+mod inflection_buffer;
+
+pub use alphabet::*;
+pub use inflection_buffer::*;
