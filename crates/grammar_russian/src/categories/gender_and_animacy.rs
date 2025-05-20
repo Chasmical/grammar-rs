@@ -100,10 +100,10 @@ impl const HasAnimacy for GenderAndAnimacy {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum GenderOrPlural {
     #[default]
-    Masculine,
-    Neuter,
-    Feminine,
-    Plural,
+    Masculine = 0,
+    Neuter = 1,
+    Feminine = 2,
+    Plural = 3,
 }
 
 impl GenderOrPlural {

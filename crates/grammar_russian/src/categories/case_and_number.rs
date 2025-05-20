@@ -1,8 +1,8 @@
 use thiserror::Error;
 
-use crate::util::{_Into, const_traits::*, enum_conversion};
-
 use super::HasAnimacy;
+
+use crate::util::{const_traits::*, enum_conversion};
 
 /// One of the main or secondary Russian grammatical cases.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -213,11 +213,15 @@ impl CaseExAndNumber {
 }
 
 impl Case {
-    pub const fn is_nom_or_acc_inan(self, animacy: impl ~const HasAnimacy + Copy) -> bool {
+    pub const fn acc_is_nom(self, animacy: impl ~const HasAnimacy + Copy) -> Option<bool> {
         match self {
-            Self::Nominative => true,
-            Self::Accusative => animacy.is_inanimate(),
-            _ => false,
+            Self::Nominative => Some(true),
+            Self::Genitive => Some(false),
+            Self::Accusative => Some(animacy.is_inanimate()),
+            _ => None,
         }
+    }
+    pub const fn is_nom_or_acc_inan(self, animacy: impl ~const HasAnimacy + Copy) -> bool {
+        matches!(self.acc_is_nom(animacy), Some(true))
     }
 }
