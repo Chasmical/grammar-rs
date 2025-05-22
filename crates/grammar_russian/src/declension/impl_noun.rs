@@ -5,21 +5,32 @@ use crate::{InflectionBuffer, categories::*, declension::*, letters};
 pub struct Noun<'a> {
     stem: &'a str,
     declension: Option<Declension>,
-    gender_animacy: GenderAndAnimacy,
+    gender_animacy: GenderExAndAnimacy,
     tantum: Option<Number>,
     exceptions: &'a [(CaseExAndNumber, &'a str)],
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct NounDeclInfo {
+    pub(crate) case_number: CaseAndNumber,
+    pub(crate) gender_animacy: GenderAndAnimacy,
+}
+
 impl<'a> Noun<'a> {
-    pub fn inflect(self, f: &mut std::fmt::Formatter, info: CaseExAndNumber) -> std::fmt::Result {
-        if let Some(str) = self.exceptions.iter().find(|x| x.0 == info) {
+    pub fn inflect(
+        &self,
+        f: &mut std::fmt::Formatter,
+        case_number: CaseExAndNumber,
+    ) -> std::fmt::Result {
+        if let Some(str) = self.exceptions.iter().find(|x| x.0 == case_number) {
             return str.1.fmt(f);
         }
         if let Some(decl) = self.declension {
-            let mut case_num = info.normalize();
+            let mut case_number = case_number.normalize();
+            let gender_animacy = self.gender_animacy.normalize();
 
             if let Some(tantum) = self.tantum {
-                case_num = (case_num.case(), tantum).into();
+                case_number = case_number.case().with_num(tantum);
             }
 
             let mut buf = InflectionBuffer::from_stem_unchecked(self.stem);
@@ -27,12 +38,17 @@ impl<'a> Noun<'a> {
             match decl {
                 Declension::Noun(decl) => {
                     decl.inflect(&mut buf, NounDeclInfo {
-                        case_number: case_num,
-                        gender_animacy: self.gender_animacy,
+                        case_number,
+                        gender_animacy,
                     });
                 },
-                Declension::Pronoun(_) => todo!(),   // TODO
-                Declension::Adjective(_) => todo!(), // TODO
+                Declension::Adjective(decl) => {
+                    decl.inflect(&mut buf, AdjectiveDeclInfo {
+                        case_number,
+                        info: gender_animacy.with_num(case_number.number()),
+                    });
+                },
+                Declension::Pronoun(_) => todo!(), // TODO
             };
 
             return buf.as_str().fmt(f);
@@ -40,12 +56,6 @@ impl<'a> Noun<'a> {
             return self.stem.fmt(f);
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct NounDeclInfo {
-    case_number: CaseAndNumber,
-    gender_animacy: GenderAndAnimacy,
 }
 
 impl const HasCase for NounDeclInfo {
@@ -70,10 +80,6 @@ impl const HasAnimacy for NounDeclInfo {
 }
 
 impl NounDeclension {
-    pub fn get_ending(self, _: NounDeclInfo) -> &'static str {
-        todo!() // TODO
-    }
-
     pub fn inflect(self, buf: &mut InflectionBuffer, info: NounDeclInfo) {
         buf.append_to_ending(self.get_ending(info));
 
