@@ -4,7 +4,7 @@ use super::HasAnimacy;
 
 use crate::util::{const_traits::*, enum_conversion};
 
-/// One of the main or secondary Russian grammatical cases.
+/// A main or secondary Russian grammatical case.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum CaseEx {
@@ -31,13 +31,16 @@ pub enum Case {
     Instrumental = 4,
     Prepositional = 5,
 }
+
 enum_conversion! {
     impl From<Case, Error = CaseError> for CaseEx {
         Nominative, Genitive, Dative, Accusative, Instrumental, Prepositional,
     }
 }
 #[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
-#[error("TODO")]
+#[error(
+    "case must be one of the main 6: nominative, genitive, dative, accusative, instrumental or prepositional"
+)]
 pub struct CaseError;
 
 /// A Russian grammatical number.
@@ -46,6 +49,50 @@ pub enum Number {
     #[default]
     Singular = 0,
     Plural = 1,
+}
+
+// Traits providing Case, CaseEx and Number values
+#[const_trait]
+pub trait HasCase {
+    fn case(&self) -> Case;
+}
+#[const_trait]
+pub trait HasCaseEx {
+    fn case_ex(&self) -> CaseEx;
+}
+#[const_trait]
+pub trait HasNumber {
+    fn number(&self) -> Number;
+
+    fn is_singular(&self) -> bool {
+        matches!(self.number(), Number::Singular)
+    }
+    fn is_plural(&self) -> bool {
+        matches!(self.number(), Number::Plural)
+    }
+}
+
+// CaseEx, Case and Number provide themselves
+impl const HasCaseEx for CaseEx {
+    fn case_ex(&self) -> CaseEx {
+        *self
+    }
+}
+impl const HasCase for Case {
+    fn case(&self) -> Case {
+        *self
+    }
+}
+impl const HasNumber for Number {
+    fn number(&self) -> Number {
+        *self
+    }
+}
+// Any type implementing HasCase implements HasCaseEx as well
+impl<T: ~const HasCase> const HasCaseEx for T {
+    fn case_ex(&self) -> CaseEx {
+        self.case()._into()
+    }
 }
 
 /// [`CaseEx`] and [`Number`] as one value.
@@ -101,48 +148,25 @@ enum_conversion! {
     }
 }
 
-// Traits providing Case, CaseEx and Number values
-#[const_trait]
-pub trait HasCase {
-    fn case(&self) -> Case;
-}
-#[const_trait]
-pub trait HasCaseEx {
-    fn case_ex(&self) -> CaseEx;
-}
-#[const_trait]
-pub trait HasNumber {
-    fn number(&self) -> Number;
-
-    fn is_singular(&self) -> bool {
-        matches!(self.number(), Number::Singular)
-    }
-    fn is_plural(&self) -> bool {
-        matches!(self.number(), Number::Plural)
+// Constructing and deconstructing CaseExAndNumber
+impl CaseExAndNumber {
+    pub const fn new(case_ex: CaseEx, number: Number) -> Self {
+        unsafe { std::mem::transmute(((case_ex as u8) << 1) | number as u8) }
     }
 }
-
-// Case, CaseEx and Number provide themselves
-impl const HasCase for Case {
-    fn case(&self) -> Case {
-        *self
+impl CaseEx {
+    pub const fn with_num(self, number: Number) -> CaseExAndNumber {
+        CaseExAndNumber::new(self, number)
     }
 }
-impl const HasCaseEx for CaseEx {
+impl const HasCaseEx for CaseExAndNumber {
     fn case_ex(&self) -> CaseEx {
-        *self
+        unsafe { std::mem::transmute(*self as u8 >> 1) }
     }
 }
-impl const HasNumber for Number {
+impl const HasNumber for CaseExAndNumber {
     fn number(&self) -> Number {
-        *self
-    }
-}
-// Any type implementing HasCase implements HasCaseEx as well
-impl<T: ~const HasCase> const HasCaseEx for T {
-    fn case_ex(&self) -> CaseEx {
-        // FIXME(const-hack): Replace with into().
-        self.case()._into()
+        unsafe { std::mem::transmute(*self as u8 & 1) }
     }
 }
 
@@ -152,13 +176,8 @@ impl CaseAndNumber {
         unsafe { std::mem::transmute(((case as u8) << 1) | number as u8) }
     }
 }
-impl_const_From!(<(Case, Number)> for CaseAndNumber {
-    fn from(value: (Case, Number)) -> Self {
-        Self::new(value.0, value.1)
-    }
-});
 impl Case {
-    pub const fn with(self, number: Number) -> CaseAndNumber {
+    pub const fn with_num(self, number: Number) -> CaseAndNumber {
         CaseAndNumber::new(self, number)
     }
 }
@@ -173,32 +192,7 @@ impl const HasNumber for CaseAndNumber {
     }
 }
 
-// Constructing and deconstructing CaseExAndNumber
-impl CaseExAndNumber {
-    pub const fn new(case_ex: CaseEx, number: Number) -> Self {
-        unsafe { std::mem::transmute(((case_ex as u8) << 1) | number as u8) }
-    }
-}
-impl_const_From!(<(CaseEx, Number)> for CaseExAndNumber {
-    fn from(value: (CaseEx, Number)) -> Self {
-        Self::new(value.0, value.1)
-    }
-});
-impl CaseEx {
-    pub const fn with(self, number: Number) -> CaseExAndNumber {
-        CaseExAndNumber::new(self, number)
-    }
-}
-impl const HasCaseEx for CaseExAndNumber {
-    fn case_ex(&self) -> CaseEx {
-        unsafe { std::mem::transmute(*self as u8 >> 1) }
-    }
-}
-impl const HasNumber for CaseExAndNumber {
-    fn number(&self) -> Number {
-        unsafe { std::mem::transmute(*self as u8 & 1) }
-    }
-}
+// Note: CaseEx shouldn't get normalized into Case, since number info may get lost.
 
 impl CaseExAndNumber {
     // TODO: resolve conflicting into impl???
