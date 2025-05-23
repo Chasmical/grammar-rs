@@ -50,6 +50,10 @@ impl InflectionBuffer {
         let shrink = self.dst.splice(range, []).len();
         self.stem_len -= shrink;
     }
+    pub fn insert_between_two_last_stem_letters(&mut self, ch: Letter) {
+        self.dst.splice((self.stem_len - 2)..(self.stem_len - 2), ch.as_str().bytes());
+        self.stem_len += ch.as_str().len();
+    }
 
     pub const fn as_str(&self) -> &str {
         unsafe { str::from_utf8_unchecked(self.dst.as_slice()) }

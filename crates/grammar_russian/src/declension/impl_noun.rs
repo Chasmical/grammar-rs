@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::{InflectionBuffer, categories::*, declension::*, letters};
+use crate::{InflectionBuffer, categories::*, declension::*, letters, stress::*};
 
 pub struct Noun<'a> {
     stem: &'a str,
@@ -85,6 +85,20 @@ impl NounDeclension {
 
         if self.flags.has_circle() {
             self.apply_unique_alternation(buf, info);
+        }
+
+        if self.stem_type == NounStemType::Type8 && matches!(buf.ending(), [letters::я, ..]) {
+            if buf
+                .stem()
+                .get(buf.stem().len() - 1)
+                .is_some_and(|x| x.is_hissing())
+            {
+                buf.ending_mut()[0] = letters::а;
+            }
+        }
+
+        if self.flags.has_star() {
+            self.apply_vowel_alternation(buf, info);
         }
 
         todo!() // TODO
@@ -183,5 +197,116 @@ impl NounDeclension {
                 todo!() // TODO
             },
         };
+    }
+
+    pub fn apply_vowel_alternation(self, buf: &mut InflectionBuffer, info: NounDeclInfo) {
+        let gender = info.gender();
+
+        if gender == Gender::Masculine
+            || gender == Gender::Feminine && self.stem_type == NounStemType::Type8
+        {
+            let last_vowel_index = buf.stem().iter().rposition(|x| x.is_vowel()).expect("todo"); // TODO
+
+            if info.is_singular() {
+                if info.case().is_nom_or_acc_inan(info)
+                    || gender == Gender::Feminine
+                        && info.case_number == CaseAndNumber::InstrumentalSingular
+                {
+                    return;
+                }
+            }
+
+            let last_vowel = buf.stem()[last_vowel_index];
+            match last_vowel {
+                letters::о => {
+                    buf.remove_from_stem((last_vowel_index * 2)..((last_vowel_index + 1) * 2));
+                },
+                letters::е | letters::ё => {
+                    let preceding = buf.stem().get(last_vowel_index - 1);
+
+                    if let Some(preceding) = preceding {
+                        if preceding.is_vowel() {
+                            buf.stem_mut()[last_vowel_index] = letters::й;
+                        } else if self.stem_type == NounStemType::Type6
+                            || self.stem_type == NounStemType::Type3
+                                && preceding.is_non_sibilant_consonant()
+                            || *preceding == letters::л
+                        {
+                            buf.stem_mut()[last_vowel_index] = letters::ь;
+                        }
+                    } else {
+                        buf.remove_from_stem((last_vowel_index * 2)..((last_vowel_index + 1) * 2));
+                    }
+                },
+                _ => todo!(), // TODO
+            }
+        } else if matches!(gender, Gender::Neuter | Gender::Feminine) {
+            if info.is_plural() && info.case().acc_is_nom(info) == Some(false) {
+                if self.stem_type == NounStemType::Type2
+                    && matches!(self.stress, NounStress::B | NounStress::F)
+                    || self.flags.has_circled_two()
+                {
+                    return;
+                }
+
+                if self.stem_type == NounStemType::Type6 && matches!(buf.stem(), [.., letters::ь])
+                {
+                    let len = buf.stem().len();
+                    buf.stem_mut()[len - 1] = match self.stress.is_ending_stressed(info, info) {
+                        true => letters::е,
+                        false => letters::и,
+                    };
+                    return;
+                }
+
+                if gender == Gender::Feminine && matches!(buf.ending(), [letters::ь]) {
+                    buf.replace_ending("");
+                }
+
+                let last_cons_index = buf
+                    .stem()
+                    .iter()
+                    .rposition(|x| x.is_consonant())
+                    .expect("todo"); // TODO
+
+                let last = buf.stem()[last_cons_index];
+                let pre_last = buf.stem_mut().get_mut(last_cons_index - 1);
+
+                match pre_last {
+                    Some(pre_last @ &mut (letters::ь | letters::й)) => {
+                        *pre_last =
+                            if last != letters::ц && self.stress.is_ending_stressed(info, info) {
+                                letters::ё
+                            } else {
+                                letters::е
+                            };
+                        return;
+                    },
+                    _ => {},
+                };
+
+                let pre_last = pre_last.copied();
+
+                if matches!(pre_last, Some(letters::к | letters::г | letters::х))
+                    || matches!(last, letters::к | letters::г | letters::х)
+                        && pre_last.is_some_and(|x| x.is_sibilant())
+                {
+                    buf.insert_between_two_last_stem_letters(letters::о);
+                    return;
+                }
+
+                buf.insert_between_two_last_stem_letters(
+                    if last != letters::ц && self.stress.is_ending_stressed(info, info) {
+                        if pre_last.is_some_and(|x| x.is_hissing()) {
+                            letters::о
+                        } else {
+                            letters::ё
+                        }
+                    } else {
+                        letters::е
+                    },
+                );
+            }
+        }
     }
 }
