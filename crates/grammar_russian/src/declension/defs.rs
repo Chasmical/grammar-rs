@@ -12,7 +12,7 @@ pub struct NounDeclension {
     pub stem_type: NounStemType,
     pub flags: DeclensionFlags,
     pub stress: NounStress,
-    pub override_gender: Option<GenderAndAnimacy>,
+    pub override_gender: Option<(Gender, Animacy)>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PronounDeclension {
@@ -26,6 +26,35 @@ pub struct AdjectiveDeclension {
     pub flags: DeclensionFlags,
     pub stress: AdjectiveStress,
     pub is_reflexive: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DeclInfo {
+    pub(crate) case: Case,
+    pub(crate) number: Number,
+    pub(crate) gender: Gender,
+    pub(crate) animacy: Animacy,
+}
+
+impl const HasCase for DeclInfo {
+    fn case(&self) -> Case {
+        self.case
+    }
+}
+impl const HasNumber for DeclInfo {
+    fn number(&self) -> Number {
+        self.number
+    }
+}
+impl const HasGender for DeclInfo {
+    fn gender(&self) -> Gender {
+        self.gender
+    }
+}
+impl const HasAnimacy for DeclInfo {
+    fn animacy(&self) -> Animacy {
+        self.animacy
+    }
 }
 
 impl Declension {

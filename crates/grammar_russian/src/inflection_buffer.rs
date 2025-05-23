@@ -39,7 +39,7 @@ impl InflectionBuffer {
     }
 
     pub fn append_to_stem(&mut self, append: &str) {
-        self.dst.splice(self.stem_len..self.stem_len, append.bytes());
+        self.insert_at(self.stem_len, append);
         self.stem_len += append.len();
     }
     pub fn shrink_stem_by(&mut self, shrink: usize) {
@@ -51,8 +51,11 @@ impl InflectionBuffer {
         self.stem_len -= shrink;
     }
     pub fn insert_between_two_last_stem_letters(&mut self, ch: Letter) {
-        self.dst.splice((self.stem_len - 2)..(self.stem_len - 2), ch.as_str().bytes());
+        self.insert_at(self.stem_len - 2, ch.as_str());
         self.stem_len += ch.as_str().len();
+    }
+    fn insert_at(&mut self, index: usize, replace: &str) {
+        self.dst.splice(index..index, replace.bytes());
     }
 
     pub const fn as_str(&self) -> &str {

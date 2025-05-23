@@ -5,49 +5,43 @@ use crate::{InflectionBuffer, categories::*, declension::*, letters, stress::*};
 pub struct Noun<'a> {
     stem: &'a str,
     declension: Option<Declension>,
-    gender_animacy: GenderExAndAnimacy,
+    gender: GenderEx,
+    animacy: Animacy,
     tantum: Option<Number>,
-    exceptions: &'a [(CaseExAndNumber, &'a str)],
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct NounDeclInfo {
-    pub(crate) case_number: CaseAndNumber,
-    pub(crate) gender_animacy: GenderAndAnimacy,
+    // exceptions: &'a [(CaseExAndNumber, &'a str)],
 }
 
 impl<'a> Noun<'a> {
     pub fn inflect(
         &self,
         f: &mut std::fmt::Formatter,
-        case_number: CaseExAndNumber,
+        case: CaseEx,
+        number: Number,
     ) -> std::fmt::Result {
-        if let Some(str) = self.exceptions.iter().find(|x| x.0 == case_number) {
-            return str.1.fmt(f);
-        }
-        if let Some(decl) = self.declension {
-            let mut case_number = case_number.normalize();
-            let gender_animacy = self.gender_animacy.normalize();
+        // TODO: check exceptions
 
-            if let Some(tantum) = self.tantum {
-                case_number = case_number.case().with_num(tantum);
-            }
+        if let Some(decl) = self.declension {
+            let (case, number) = case.normalize_with(number);
+            let number = self.tantum.unwrap_or(number);
 
             let mut buf = InflectionBuffer::from_stem_unchecked(self.stem);
 
+            let mut info = DeclInfo {
+                case,
+                number,
+                gender: self.gender.normalize(),
+                animacy: self.animacy,
+            };
+
             match decl {
                 Declension::Noun(decl) => {
-                    decl.inflect(&mut buf, NounDeclInfo {
-                        case_number,
-                        gender_animacy,
-                    });
+                    if let Some((gender, animacy)) = decl.override_gender {
+                        info.gender = gender;
+                        info.animacy = animacy;
+                    }
+                    decl.inflect(&mut buf, info)
                 },
-                Declension::Adjective(decl) => {
-                    decl.inflect(&mut buf, AdjectiveDeclInfo {
-                        case_number,
-                        info: gender_animacy.with_num(case_number.number()),
-                    });
-                },
+                Declension::Adjective(decl) => decl.inflect(&mut buf, info),
                 Declension::Pronoun(_) => todo!(), // TODO
             };
 
@@ -58,29 +52,8 @@ impl<'a> Noun<'a> {
     }
 }
 
-impl const HasCase for NounDeclInfo {
-    fn case(&self) -> Case {
-        self.case_number.case()
-    }
-}
-impl const HasNumber for NounDeclInfo {
-    fn number(&self) -> Number {
-        self.case_number.number()
-    }
-}
-impl const HasGender for NounDeclInfo {
-    fn gender(&self) -> Gender {
-        self.gender_animacy.gender()
-    }
-}
-impl const HasAnimacy for NounDeclInfo {
-    fn animacy(&self) -> Animacy {
-        self.gender_animacy.animacy()
-    }
-}
-
 impl NounDeclension {
-    pub fn inflect(self, buf: &mut InflectionBuffer, info: NounDeclInfo) {
+    pub fn inflect(self, buf: &mut InflectionBuffer, info: DeclInfo) {
         buf.append_to_ending(self.get_ending(info));
 
         if self.flags.has_circle() {
@@ -104,7 +77,7 @@ impl NounDeclension {
         todo!() // TODO
     }
 
-    pub fn apply_unique_alternation(self, buf: &mut InflectionBuffer, info: NounDeclInfo) {
+    pub fn apply_unique_alternation(self, buf: &mut InflectionBuffer, info: DeclInfo) {
         use letters::*;
 
         match buf.stem_mut() {
@@ -115,7 +88,7 @@ impl NounDeclension {
                     buf.shrink_stem_by(4);
 
                     // Nominative - ending 'е', genitive - ending '', other - no changes
-                    if let Some(is_nominative) = info.case().acc_is_nom(info) {
+                    if let Some(is_nominative) = info.case.acc_is_nom(info) {
                         buf.replace_ending(match is_nominative {
                             // Don't override if (1) flag already did (господин - господа)
                             true if !self.flags.has_circled_one() => "е",
@@ -139,12 +112,12 @@ impl NounDeclension {
                     buf.shrink_stem_by(4);
 
                     // Nominative - ending 'а', genitive - ending '', other - no changes
-                    if let Some(is_nominative) = info.case().acc_is_nom(info) {
+                    if let Some(is_nominative) = info.case.acc_is_nom(info) {
                         buf.replace_ending(if is_nominative { "а" } else { "" });
                     }
                 } else {
                     // Remove the last vowel for non-nominative cases ('о', pre-last char)
-                    if !info.case().is_nom_or_acc_inan(info) {
+                    if !info.case.is_nom_or_acc_inan(info) {
                         buf.remove_from_stem((buf.stem_len - 4)..(buf.stem_len - 2));
                     }
                 }
@@ -160,12 +133,12 @@ impl NounDeclension {
                     *k = т;
 
                     // Nominative - ending 'а', genitive - ending '', other - no changes
-                    if let Some(is_nominative) = info.case().acc_is_nom(info) {
+                    if let Some(is_nominative) = info.case.acc_is_nom(info) {
                         buf.replace_ending(if is_nominative { "а" } else { "" });
                     }
                 } else {
                     // Remove the last vowel for non-nominative cases ('о', pre-last char)
-                    if !info.case().is_nom_or_acc_inan(info) {
+                    if !info.case.is_nom_or_acc_inan(info) {
                         buf.remove_from_stem((buf.stem_len - 4)..(buf.stem_len - 2));
                     }
                 }
@@ -184,13 +157,13 @@ impl NounDeclension {
                     buf.shrink_stem_by(6);
                 } else {
                     // Remove the last vowel for non-nominative cases ('е', pre-last char)
-                    if !info.case().is_nom_or_acc_inan(info) {
+                    if !info.case.is_nom_or_acc_inan(info) {
                         buf.remove_from_stem((buf.stem_len - 4)..(buf.stem_len - 2));
                     }
                 }
             },
             // -мя
-            [.., м] if matches!(info.gender(), Gender::Neuter) => {
+            [.., м] if matches!(info.gender, Gender::Neuter) => {
                 todo!() // TODO
             },
             _ => {
@@ -199,7 +172,7 @@ impl NounDeclension {
         };
     }
 
-    pub fn apply_vowel_alternation(self, buf: &mut InflectionBuffer, info: NounDeclInfo) {
+    pub fn apply_vowel_alternation(self, buf: &mut InflectionBuffer, info: DeclInfo) {
         let gender = info.gender();
 
         if gender == Gender::Masculine
@@ -208,9 +181,8 @@ impl NounDeclension {
             let last_vowel_index = buf.stem().iter().rposition(|x| x.is_vowel()).expect("todo"); // TODO
 
             if info.is_singular() {
-                if info.case().is_nom_or_acc_inan(info)
-                    || gender == Gender::Feminine
-                        && info.case_number == CaseAndNumber::InstrumentalSingular
+                if info.case.is_nom_or_acc_inan(info)
+                    || gender == Gender::Feminine && info.case == Case::Instrumental
                 {
                     return;
                 }
@@ -241,7 +213,7 @@ impl NounDeclension {
                 _ => todo!(), // TODO
             }
         } else if matches!(gender, Gender::Neuter | Gender::Feminine) {
-            if info.is_plural() && info.case().acc_is_nom(info) == Some(false) {
+            if info.is_plural() && info.case.acc_is_nom(info) == Some(false) {
                 if self.stem_type == NounStemType::Type2
                     && matches!(self.stress, NounStress::B | NounStress::F)
                     || self.flags.has_circled_two()
@@ -252,7 +224,7 @@ impl NounDeclension {
                 if self.stem_type == NounStemType::Type6 && matches!(buf.stem(), [.., letters::ь])
                 {
                     let len = buf.stem().len();
-                    buf.stem_mut()[len - 1] = match self.stress.is_ending_stressed(info, info) {
+                    buf.stem_mut()[len - 1] = match self.stress.is_ending_stressed(info) {
                         true => letters::е,
                         false => letters::и,
                     };
@@ -274,12 +246,11 @@ impl NounDeclension {
 
                 match pre_last {
                     Some(pre_last @ &mut (letters::ь | letters::й)) => {
-                        *pre_last =
-                            if last != letters::ц && self.stress.is_ending_stressed(info, info) {
-                                letters::ё
-                            } else {
-                                letters::е
-                            };
+                        *pre_last = if last != letters::ц && self.stress.is_ending_stressed(info) {
+                            letters::ё
+                        } else {
+                            letters::е
+                        };
                         return;
                     },
                     _ => {},
@@ -296,7 +267,7 @@ impl NounDeclension {
                 }
 
                 buf.insert_between_two_last_stem_letters(
-                    if last != letters::ц && self.stress.is_ending_stressed(info, info) {
+                    if last != letters::ц && self.stress.is_ending_stressed(info) {
                         if pre_last.is_some_and(|x| x.is_hissing()) {
                             letters::о
                         } else {

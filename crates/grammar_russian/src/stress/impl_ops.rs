@@ -1,4 +1,4 @@
-use crate::categories::*;
+use crate::{categories::*, declension::DeclInfo};
 
 use super::defs::*;
 
@@ -51,11 +51,7 @@ impl AnyStress {
 }
 
 impl NounStress {
-    pub const fn is_stem_stressed(
-        self,
-        info: impl ~const HasCase + ~const HasNumber + Copy,
-        animacy: impl ~const HasAnimacy + Copy,
-    ) -> bool {
+    pub const fn is_stem_stressed(self, info: DeclInfo) -> bool {
         // Note: `is_nom_with` is called only when number is plural, that is, when the
         // accusative case maps to either nominative or genitive depending on animacy.
 
@@ -64,26 +60,22 @@ impl NounStress {
             Self::B => false,
             Self::C => info.is_singular(),
             Self::D => info.is_plural(),
-            Self::E => info.is_singular() || info.case().is_nom_or_acc_inan(animacy),
-            Self::F => info.is_plural() && info.case().is_nom_or_acc_inan(animacy),
+            Self::E => info.is_singular() || info.case().is_nom_or_acc_inan(info),
+            Self::F => info.is_plural() && info.case().is_nom_or_acc_inan(info),
             Self::Bp => info.is_singular() && matches!(info.case(), Case::Instrumental),
             Self::Dp => info.is_plural() || matches!(info.case(), Case::Accusative),
             Self::Fp => match info.number() {
                 Number::Singular => matches!(info.case(), Case::Accusative),
-                Number::Plural => info.case().is_nom_or_acc_inan(animacy),
+                Number::Plural => info.case().is_nom_or_acc_inan(info),
             },
             Self::Fpp => match info.number() {
                 Number::Singular => matches!(info.case(), Case::Instrumental),
-                Number::Plural => info.case().is_nom_or_acc_inan(animacy),
+                Number::Plural => info.case().is_nom_or_acc_inan(info),
             },
         }
     }
-    pub const fn is_ending_stressed(
-        self,
-        info: impl ~const HasCase + ~const HasNumber + Copy,
-        animacy: impl ~const HasAnimacy + Copy,
-    ) -> bool {
-        !self.is_stem_stressed(info, animacy)
+    pub const fn is_ending_stressed(self, info: DeclInfo) -> bool {
+        !self.is_stem_stressed(info)
     }
 }
 
@@ -96,42 +88,41 @@ impl AdjectiveFullStress {
     }
 }
 impl AdjectiveShortStress {
-    pub const fn is_stem_stressed(self, info: GenderOrPlural) -> bool {
-        use GenderOrPlural as GP;
-
+    pub const fn is_stem_stressed(self, gender: Gender, number: Number) -> bool {
         match self {
             Self::A => true,
             Self::B => false,
-            Self::C => matches!(info, GP::Masculine | GP::Neuter | GP::Plural),
+            Self::C => {
+                matches!(number, Number::Plural)
+                    || matches!(gender, Gender::Masculine | Gender::Neuter)
+            },
             Self::Ap => true,
-            Self::Bp => matches!(info, GP::Masculine),
-            Self::Cp => matches!(info, GP::Masculine | GP::Neuter),
-            Self::Cpp => matches!(info, GP::Masculine | GP::Neuter),
+            Self::Bp => matches!(number, Number::Singular) && matches!(gender, Gender::Masculine),
+            Self::Cp => {
+                matches!(number, Number::Singular)
+                    && matches!(gender, Gender::Masculine | Gender::Neuter)
+            },
+            Self::Cpp => {
+                matches!(number, Number::Singular)
+                    && matches!(gender, Gender::Masculine | Gender::Neuter)
+            },
         }
     }
-    pub const fn is_ending_stressed(self, info: GenderOrPlural) -> bool {
-        !self.is_stem_stressed(info)
+    pub const fn is_ending_stressed(self, gender: Gender, number: Number) -> bool {
+        !self.is_stem_stressed(gender, number)
     }
 }
 
 impl PronounStress {
-    pub const fn is_stem_stressed(
-        self,
-        info: impl ~const HasCase + ~const HasNumber + Copy,
-        animacy: impl ~const HasAnimacy + Copy,
-    ) -> bool {
+    pub const fn is_stem_stressed(self, info: DeclInfo) -> bool {
         match self {
             PronounStress::A => true,
             PronounStress::B => false,
-            PronounStress::F => info.is_plural() && info.case().is_nom_or_acc_inan(animacy),
+            PronounStress::F => info.is_plural() && info.case().is_nom_or_acc_inan(info),
         }
     }
-    pub const fn is_ending_stressed(
-        self,
-        info: impl ~const HasCase + ~const HasNumber + Copy,
-        animacy: impl ~const HasAnimacy + Copy,
-    ) -> bool {
-        !self.is_stem_stressed(info, animacy)
+    pub const fn is_ending_stressed(self, info: DeclInfo) -> bool {
+        !self.is_stem_stressed(info)
     }
 }
 
