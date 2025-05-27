@@ -50,13 +50,12 @@ impl AnyDualStress {
     }
     pub const fn try_abbr_adj(self) -> Option<AnyStress> {
         if let Some(alt) = self.alt {
-            if alt.unprime() as u8 == self.main as u8 {
+            if !self.main.has_any_primes() && self.main as u8 == alt.unprime() as u8 {
                 return Some(alt);
             }
         }
         None
     }
-
     pub const fn abbr_verb(self) -> AnyDualStress {
         if let Some(abbr) = self.try_abbr_verb() { abbr._into() } else { self }
     }
@@ -67,7 +66,6 @@ impl AnyDualStress {
         }
     }
 }
-
 impl AdjectiveStress {
     pub const fn abbr(self) -> AnyDualStress {
         if let Some(abbr) = self.try_abbr() { abbr._into() } else { self._into() }
@@ -91,6 +89,19 @@ impl VerbStress {
             VerbPastStress::A => Some(self.present),
             _ => None,
         }
+    }
+}
+
+impl AnyDualStress {
+    pub const fn normalize_adj(self) -> (AnyStress, AnyStress) {
+        if let Some(alt) = self.alt {
+            return (self.main, alt);
+        } else {
+            return (self.main.unprime(), self.main);
+        }
+    }
+    pub const fn normalize_verb(self) -> (AnyStress, AnyStress) {
+        (self.main, if let Some(alt) = self.alt { alt } else { AnyStress::A })
     }
 }
 

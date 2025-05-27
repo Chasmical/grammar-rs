@@ -101,35 +101,26 @@ impl_const_TryFrom!(<AnyStress> for VerbStress {
 impl_const_TryFrom!(<AnyDualStress> for AdjectiveStress {
     type Error = AdjectiveStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
-        if let Some(alt) = value.alt {
-            Ok(Self::new(
-                // FIXME(const-hack): Replace with `?`.
-                const_try!(value.main._try_into(), Self::Error::Full),
-                // FIXME(const-hack): Replace with `?`.
-                const_try!(alt._try_into(), Self::Error::Short),
-            ))
-        } else {
+        let (main, alt) = value.normalize_adj();
+
+        Ok(Self::new(
             // FIXME(const-hack): Replace with `?`.
-            let alt = const_try!(value.main._try_into(), Self::Error::Short);
-            Ok(Self::new(
-                // FIXME(const-hack): Replace with `?`.
-                const_try!(AnyStress::_from(alt).unprime()._try_into(), Self::Error::Full),
-                alt
-            ))
-        }
+            const_try!(main._try_into(), Self::Error::Full),
+            // FIXME(const-hack): Replace with `?`.
+            const_try!(alt._try_into(), Self::Error::Short),
+        ))
     }
 });
 impl_const_TryFrom!(<AnyDualStress> for VerbStress {
     type Error = VerbStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
+        let (main, alt) = value.normalize_verb();
+
         Ok(Self::new(
             // FIXME(const-hack): Replace with `?`.
-            const_try!(value.main._try_into(), Self::Error::Present),
-            // FIXME(const-hack): Replace with `.map_or(Ok(VerbPastStress::A), |x| x.try_into())?`.
-            match value.alt {
-                Some(x) => const_try!(x._try_into(), Self::Error::Past),
-                None => VerbPastStress::A,
-            }
+            const_try!(main._try_into(), Self::Error::Present),
+            // FIXME(const-hack): Replace with `?`.
+            const_try!(alt._try_into(), Self::Error::Past),
         ))
     }
 });
