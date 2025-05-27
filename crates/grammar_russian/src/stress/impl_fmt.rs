@@ -1,3 +1,5 @@
+use crate::util::const_traits::*;
+
 use super::defs::*;
 
 impl AnyStress {
@@ -70,111 +72,101 @@ impl std::fmt::Display for AnyDualStress {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParseStressError {
-    Empty,
+    Invalid,
     InvalidPrime,
-    InvalidFormat,
     InvalidType,
 }
 
 impl AnyStress {
     pub const fn from_str(text: &str) -> Result<Self, ParseStressError> {
+        match Self::from_str_partial(text) {
+            Ok((stress, len)) => {
+                // Return Ok only if the entire string was parsed
+                if len as usize == text.len() { Ok(stress) } else { Err(ParseStressError::Invalid) }
+            },
+            Err(err) => Err(err),
+        }
+    }
+    pub const fn from_str_partial(text: &str) -> Result<(Self, u8), ParseStressError> {
         let text = text.as_bytes();
 
-        // First, parse the letter
+        // First, parse the latin letter
         let letter = match text.first() {
-            None => return Err(ParseStressError::Empty),
             Some(b'a') => Self::A,
             Some(b'b') => Self::B,
             Some(b'c') => Self::C,
             Some(b'd') => Self::D,
             Some(b'e') => Self::E,
             Some(b'f') => Self::F,
-            _ => return Err(ParseStressError::InvalidFormat),
+            _ => return Err(ParseStressError::Invalid),
         };
 
-        match text {
-            // Simple one-letter stress
-            [_] => Ok(letter),
+        // Then parse prime indicators
+        let (primes, parsed_len) = match text {
+            [_, 0xE2, 0x80, 0xB2, ..] => (1, 4), // ′ (UTF-8 single prime)
+            [_, 0xE2, 0x80, 0xB3, ..] => (2, 4), // ″ (UTF-8 double prime)
+            [_, b'\'', b'\'', ..] => (2, 3),     // '' (double apostrophe)
+            [_, b'\'', ..] => (1, 2),            // ' (apostrophe)
+            [_, b'"', ..] => (2, 2),             // " (quotation)
+            _ => (0u8, 1u8),                     // no primes
+        };
 
-            // Single-prime: apostrophe, or UTF-8 char
-            [_, b'\''] | [_, 0xE2, 0x80, 0xB2] => {
+        // Apply appropriate primes, and return
+        Ok((
+            match primes {
+                0 => letter,
                 // FIXME(const-hack): Replace with `.ok_or(Err(…))`.
-                match letter.add_single_prime() {
-                    Some(stress) => Ok(stress),
-                    None => Err(ParseStressError::InvalidPrime),
-                }
-            },
-            // Double-prime: quotation, two apostrophes, or UTF-8 char
-            [_, b'"'] | [_, b'\'', b'\''] | [_, 0xE2, 0x80, 0xB3] => {
+                1 => match letter.add_single_prime() {
+                    Some(stress) => stress,
+                    None => return Err(ParseStressError::InvalidPrime),
+                },
                 // FIXME(const-hack): Replace with `.ok_or(Err(…))`.
-                match letter.add_double_prime() {
-                    Some(stress) => Ok(stress),
-                    None => Err(ParseStressError::InvalidPrime),
-                }
+                2 => match letter.add_double_prime() {
+                    Some(stress) => stress,
+                    None => return Err(ParseStressError::InvalidPrime),
+                },
+                _ => unreachable!(),
             },
-            // All other formats are invalid
-            _ => Err(ParseStressError::InvalidFormat),
-        }
+            parsed_len,
+        ))
     }
 }
 impl AnyDualStress {
     pub const fn from_str(text: &str) -> Result<Self, ParseStressError> {
-        if text.len() > 9 {
-            return Err(ParseStressError::InvalidFormat);
+        match Self::from_str_partial(text) {
+            Ok((stress, len)) => {
+                // Return Ok only if the entire string was parsed
+                if len as usize == text.len() { Ok(stress) } else { Err(ParseStressError::Invalid) }
+            },
+            Err(err) => Err(err),
+        }
+    }
+    pub const fn from_str_partial(text: &str) -> Result<(Self, u8), ParseStressError> {
+        let (main, mut len);
+        let mut alt = None;
+
+        // Parse the main stress
+        // FIXME(const-hack): Replace with `?`.
+        (main, len) = const_try!(AnyStress::from_str_partial(text));
+
+        // If followed by a '/', parse the alt stress
+        // FIXME(const-hack): Replace with `.get()`.
+        if matches!(_get(text, len as usize), Some(b'/')) {
+            len += 1;
+            let (_, text) = text.split_at(len as usize);
+
+            // Parse the alt stress
+            // FIXME(const-hack): Replace with `?`.
+            let (stress, stress_len) = const_try!(AnyStress::from_str_partial(text));
+            alt = Some(stress);
+            len += stress_len;
         }
 
-        // FIXME(const-hack): Replace with `text.split_once('/')`.
-        if let Some((main, alt)) = split_by_slash(text) {
-            return Ok(Self::new(
-                // FIXME(const-hack): Replace with `?`.
-                match AnyStress::from_str(main) {
-                    Ok(x) => x,
-                    Err(e) => return Err(e),
-                },
-                // FIXME(const-hack): Replace with `?`.
-                match AnyStress::from_str(alt) {
-                    Ok(x) => Some(x),
-                    Err(e) => return Err(e),
-                },
-            ));
-        } else {
-            return Ok(Self::new(
-                // FIXME(const-hack): Replace with `?`.
-                match AnyStress::from_str(text) {
-                    Ok(x) => x,
-                    Err(e) => return Err(e),
-                },
-                None,
-            ));
-        }
+        // Construct the dual stress and return
+        return Ok((AnyDualStress::new(main, alt), len));
 
-        #[inline]
-        const fn split_by_slash(text: &str) -> Option<(&str, &str)> {
-            let bytes = text.as_bytes();
-            // Slash can't be the first or last char, so we can just search the range 1..(N-1).
-            // Also, it doesn't matter if it splits a character in half, since AnyStress parses
-            // the string by bytes, accepting only valid UTF-8 anyway.
-            let mut i = 1;
-            while i < bytes.len() - 1 {
-                if bytes[i] == b'/' {
-                    return Some(split_by_unchecked(text, i));
-                }
-                i += 1;
-            }
-            None
-        }
-        #[inline]
-        const fn split_by_unchecked(text: &str, i: usize) -> (&str, &str) {
-            use std::slice;
-            let len = text.len();
-            let ptr = text.as_ptr();
-            unsafe {
-                (
-                    str::from_utf8_unchecked(slice::from_raw_parts(ptr, i)),
-                    // Unlike str::split_at_unchecked, the right part starts 1 byte later (after /)
-                    str::from_utf8_unchecked(slice::from_raw_parts(ptr.add(i + 1), len - (i + 1))),
-                )
-            }
+        const fn _get(text: &str, pos: usize) -> Option<u8> {
+            if pos < text.len() { Some(unsafe { *text.as_ptr().add(pos) }) } else { None }
         }
     }
 }
@@ -260,14 +252,14 @@ mod tests {
         assert_eq!("e'".parse::<AnyStress>(), Ok(stress![e1]));
         assert_eq!("c\"".parse::<AnyStress>(), Ok(stress![c2]));
 
-        assert_eq!("".parse::<AnyStress>(), Err(Error::Empty));
-        assert_eq!("/".parse::<AnyStress>(), Err(Error::InvalidFormat));
-        assert_eq!("a/".parse::<AnyStress>(), Err(Error::InvalidFormat));
-        assert_eq!("/b".parse::<AnyStress>(), Err(Error::InvalidFormat));
-        assert_eq!("a/b".parse::<AnyStress>(), Err(Error::InvalidFormat));
-        assert_eq!("z".parse::<AnyStress>(), Err(Error::InvalidFormat));
-        assert_eq!("$a".parse::<AnyStress>(), Err(Error::InvalidFormat));
-        assert_eq!("a$".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("/".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("a/".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("/b".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("a/b".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("z".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("$a".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("a$".parse::<AnyStress>(), Err(Error::Invalid));
 
         assert_eq!("a".parse::<AnyDualStress>(), Ok(stress![a]));
         assert_eq!("f".parse::<AnyDualStress>(), Ok(stress![f]));
@@ -277,12 +269,12 @@ mod tests {
         assert_eq!("d'/b'".parse::<AnyDualStress>(), Ok(stress![d1 / b1]));
         assert_eq!("e'/c\"".parse::<AnyDualStress>(), Ok(stress![e1 / c2]));
 
-        assert_eq!("".parse::<AnyStress>(), Err(Error::Empty));
-        assert_eq!("/".parse::<AnyStress>(), Err(Error::InvalidFormat));
-        assert_eq!("a/".parse::<AnyStress>(), Err(Error::InvalidFormat));
-        assert_eq!("/b".parse::<AnyStress>(), Err(Error::InvalidFormat));
-        assert_eq!("z".parse::<AnyStress>(), Err(Error::InvalidFormat));
-        assert_eq!("$a/b".parse::<AnyStress>(), Err(Error::InvalidFormat));
-        assert_eq!("a/b$".parse::<AnyStress>(), Err(Error::InvalidFormat));
+        assert_eq!("".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("/".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("a/".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("/b".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("z".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("$a/b".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("a/b$".parse::<AnyStress>(), Err(Error::Invalid));
     }
 }
