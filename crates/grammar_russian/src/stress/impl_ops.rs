@@ -4,16 +4,10 @@ use super::defs::*;
 
 impl AnyStress {
     pub const fn has_any_primes(self) -> bool {
-        !matches!(
-            self,
-            Self::A | Self::B | Self::C | Self::D | Self::E | Self::F
-        )
+        !matches!(self, Self::A | Self::B | Self::C | Self::D | Self::E | Self::F)
     }
     pub const fn has_single_prime(self) -> bool {
-        matches!(
-            self,
-            Self::Ap | Self::Bp | Self::Cp | Self::Dp | Self::Ep | Self::Fp
-        )
+        matches!(self, Self::Ap | Self::Bp | Self::Cp | Self::Dp | Self::Ep | Self::Fp)
     }
     pub const fn has_double_prime(self) -> bool {
         matches!(self, Self::Cpp | Self::Fpp)

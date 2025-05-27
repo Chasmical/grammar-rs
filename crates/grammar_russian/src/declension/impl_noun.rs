@@ -26,12 +26,8 @@ impl<'a> Noun<'a> {
 
             let mut buf = InflectionBuffer::from_stem_unchecked(self.stem);
 
-            let mut info = DeclInfo {
-                case,
-                number,
-                gender: self.gender.normalize(),
-                animacy: self.animacy,
-            };
+            let mut info =
+                DeclInfo { case, number, gender: self.gender.normalize(), animacy: self.animacy };
 
             match decl {
                 Declension::Noun(decl) => {
@@ -61,11 +57,7 @@ impl NounDeclension {
         }
 
         if self.stem_type == NounStemType::Type8 && matches!(buf.ending(), [letters::я, ..]) {
-            if buf
-                .stem()
-                .get(buf.stem().len() - 1)
-                .is_some_and(|x| x.is_hissing())
-            {
+            if buf.stem().get(buf.stem().len() - 1).is_some_and(|x| x.is_hissing()) {
                 buf.ending_mut()[0] = letters::а;
             }
         }
@@ -235,11 +227,8 @@ impl NounDeclension {
                     buf.replace_ending("");
                 }
 
-                let last_cons_index = buf
-                    .stem()
-                    .iter()
-                    .rposition(|x| x.is_consonant())
-                    .expect("todo"); // TODO
+                let last_cons_index =
+                    buf.stem().iter().rposition(|x| x.is_consonant()).expect("todo"); // TODO
 
                 let last = buf.stem()[last_cons_index];
                 let pre_last = buf.stem_mut().get_mut(last_cons_index - 1);
