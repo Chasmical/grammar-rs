@@ -262,6 +262,22 @@ mod tests {
         assert::<AnyDualStress>(stress![a / f1], "a/f′");
         assert::<AnyDualStress>(stress![c1 / e], "c′/e");
         assert::<AnyDualStress>(stress![f2 / c2], "f″/c″");
+
+        assert::<AdjectiveStress>(stress![a / a], "a");
+        assert::<AdjectiveStress>(stress![b / b], "b");
+        assert::<AdjectiveStress>(stress![a / a1], "a′");
+        assert::<AdjectiveStress>(stress![b / b1], "b′");
+        assert::<AdjectiveStress>(stress![b / a], "b/a");
+        assert::<AdjectiveStress>(stress![a / c1], "a/c′");
+        assert::<AdjectiveStress>(stress![b / c2], "b/c″");
+
+        assert::<VerbStress>(stress![a / a], "a");
+        assert::<VerbStress>(stress![b / a], "b");
+        assert::<VerbStress>(stress![c / a], "c");
+        assert::<VerbStress>(stress![a / c], "a/c");
+        assert::<VerbStress>(stress![b / b], "b/b");
+        assert::<VerbStress>(stress![c / c2], "c/c″");
+        assert::<VerbStress>(stress![c1 / c], "c′/c");
     }
 
     #[test]
