@@ -232,7 +232,7 @@ mod tests {
     use crate::stress::*;
 
     #[test]
-    fn fmt() {
+    fn fmt_any() {
         fn assert<T: std::fmt::Display>(value: T, expected: &str) {
             assert_eq!(value.to_string(), expected);
         }
@@ -265,13 +265,16 @@ mod tests {
     }
 
     #[test]
-    fn parse() {
+    fn parse_any() {
         type Error = ParseStressError;
 
         assert_eq!("a".parse::<AnyStress>(), Ok(stress![a]));
         assert_eq!("f".parse::<AnyStress>(), Ok(stress![f]));
         assert_eq!("e'".parse::<AnyStress>(), Ok(stress![e1]));
         assert_eq!("c\"".parse::<AnyStress>(), Ok(stress![c2]));
+        assert_eq!("a′".parse::<AnyStress>(), Ok(stress![a1]));
+        assert_eq!("c''".parse::<AnyStress>(), Ok(stress![c2]));
+        assert_eq!("f″".parse::<AnyStress>(), Ok(stress![f2]));
 
         assert_eq!("".parse::<AnyStress>(), Err(Error::Invalid));
         assert_eq!("/".parse::<AnyStress>(), Err(Error::Invalid));
@@ -279,6 +282,8 @@ mod tests {
         assert_eq!("/b".parse::<AnyStress>(), Err(Error::Invalid));
         assert_eq!("a/b".parse::<AnyStress>(), Err(Error::Invalid));
         assert_eq!("z".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("A".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("ab".parse::<AnyStress>(), Err(Error::Invalid));
         assert_eq!("$a".parse::<AnyStress>(), Err(Error::Invalid));
         assert_eq!("a$".parse::<AnyStress>(), Err(Error::Invalid));
 
@@ -287,15 +292,115 @@ mod tests {
         assert_eq!("e'".parse::<AnyDualStress>(), Ok(stress![e1]));
         assert_eq!("c\"".parse::<AnyDualStress>(), Ok(stress![c2]));
         assert_eq!("a/b".parse::<AnyDualStress>(), Ok(stress![a / b]));
-        assert_eq!("d'/b'".parse::<AnyDualStress>(), Ok(stress![d1 / b1]));
-        assert_eq!("e'/c\"".parse::<AnyDualStress>(), Ok(stress![e1 / c2]));
+        assert_eq!("d'/b′".parse::<AnyDualStress>(), Ok(stress![d1 / b1]));
+        assert_eq!("e′/c\"".parse::<AnyDualStress>(), Ok(stress![e1 / c2]));
+        assert_eq!("f″/e'".parse::<AnyDualStress>(), Ok(stress![f2 / e1]));
+        assert_eq!("e′/c''".parse::<AnyDualStress>(), Ok(stress![e1 / c2]));
 
         assert_eq!("".parse::<AnyStress>(), Err(Error::Invalid));
         assert_eq!("/".parse::<AnyStress>(), Err(Error::Invalid));
         assert_eq!("a/".parse::<AnyStress>(), Err(Error::Invalid));
         assert_eq!("/b".parse::<AnyStress>(), Err(Error::Invalid));
         assert_eq!("z".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("A".parse::<AnyStress>(), Err(Error::Invalid));
+        assert_eq!("ab".parse::<AnyStress>(), Err(Error::Invalid));
         assert_eq!("$a/b".parse::<AnyStress>(), Err(Error::Invalid));
         assert_eq!("a/b$".parse::<AnyStress>(), Err(Error::Invalid));
+    }
+
+    #[test]
+    fn parse_typed() {
+        type Error = ParseStressError;
+
+        assert_eq!("a".parse::<NounStress>(), Ok(stress![a]));
+        assert_eq!("f".parse::<NounStress>(), Ok(stress![f]));
+        assert_eq!("a′".parse::<NounStress>(), Err(Error::InvalidType));
+        assert_eq!("b′".parse::<NounStress>(), Ok(stress![b1]));
+        assert_eq!("c″".parse::<NounStress>(), Err(Error::InvalidType));
+        assert_eq!("f″".parse::<NounStress>(), Ok(stress![f2]));
+
+        assert_eq!("a".parse::<PronounStress>(), Ok(stress![a]));
+        assert_eq!("b".parse::<PronounStress>(), Ok(stress![b]));
+        assert_eq!("c".parse::<PronounStress>(), Err(Error::InvalidType));
+        assert_eq!("f".parse::<PronounStress>(), Ok(stress![f]));
+        assert_eq!("a′".parse::<PronounStress>(), Err(Error::InvalidType));
+
+        assert_eq!("a".parse::<AdjectiveFullStress>(), Ok(stress![a]));
+        assert_eq!("b".parse::<AdjectiveFullStress>(), Ok(stress![b]));
+        assert_eq!("c".parse::<AdjectiveFullStress>(), Err(Error::InvalidType));
+        assert_eq!("a′".parse::<AdjectiveFullStress>(), Err(Error::InvalidType));
+
+        assert_eq!("a".parse::<AdjectiveShortStress>(), Ok(stress![a]));
+        assert_eq!("b".parse::<AdjectiveShortStress>(), Ok(stress![b]));
+        assert_eq!("c".parse::<AdjectiveShortStress>(), Ok(stress![c]));
+        assert_eq!("d".parse::<AdjectiveShortStress>(), Err(Error::InvalidType));
+        assert_eq!("a′".parse::<AdjectiveShortStress>(), Ok(stress![a1]));
+        assert_eq!("c′".parse::<AdjectiveShortStress>(), Ok(stress![c1]));
+        assert_eq!("e′".parse::<AdjectiveShortStress>(), Err(Error::InvalidType));
+        assert_eq!("c″".parse::<AdjectiveShortStress>(), Ok(stress![c2]));
+        assert_eq!("f″".parse::<AdjectiveShortStress>(), Err(Error::InvalidType));
+
+        assert_eq!("a".parse::<VerbPresentStress>(), Ok(stress![a]));
+        assert_eq!("b".parse::<VerbPresentStress>(), Ok(stress![b]));
+        assert_eq!("c".parse::<VerbPresentStress>(), Ok(stress![c]));
+        assert_eq!("d".parse::<VerbPresentStress>(), Err(Error::InvalidType));
+        assert_eq!("c′".parse::<VerbPresentStress>(), Ok(stress![c1]));
+        assert_eq!("d′".parse::<VerbPresentStress>(), Err(Error::InvalidType));
+        assert_eq!("f″".parse::<VerbPresentStress>(), Err(Error::InvalidType));
+
+        assert_eq!("a".parse::<VerbPastStress>(), Ok(stress![a]));
+        assert_eq!("b".parse::<VerbPastStress>(), Ok(stress![b]));
+        assert_eq!("c".parse::<VerbPastStress>(), Ok(stress![c]));
+        assert_eq!("d".parse::<VerbPastStress>(), Err(Error::InvalidType));
+        assert_eq!("b′".parse::<VerbPastStress>(), Err(Error::InvalidType));
+        assert_eq!("c′".parse::<VerbPastStress>(), Ok(stress![c1]));
+        assert_eq!("d′".parse::<VerbPastStress>(), Err(Error::InvalidType));
+        assert_eq!("c″".parse::<VerbPastStress>(), Ok(stress![c2]));
+        assert_eq!("f″".parse::<VerbPastStress>(), Err(Error::InvalidType));
+    }
+
+    #[test]
+    fn parse_dual() {
+        type Error = ParseStressError;
+
+        assert_eq!("a".parse::<AdjectiveStress>(), Ok(stress![a]));
+        assert_eq!("b".parse::<AdjectiveStress>(), Ok(stress![b]));
+        assert_eq!("c".parse::<AdjectiveStress>(), Err(Error::InvalidType));
+        assert_eq!("a′".parse::<AdjectiveStress>(), Ok(stress![a1]));
+        assert_eq!("b′".parse::<AdjectiveStress>(), Ok(stress![b1]));
+        assert_eq!("c′".parse::<AdjectiveStress>(), Err(Error::InvalidType));
+        assert_eq!("d′".parse::<AdjectiveStress>(), Err(Error::InvalidType));
+        assert_eq!("f″".parse::<AdjectiveStress>(), Err(Error::InvalidType));
+
+        assert_eq!("a/a".parse::<AdjectiveStress>(), Ok(stress![a / a]));
+        assert_eq!("a/c".parse::<AdjectiveStress>(), Ok(stress![a / c]));
+        assert_eq!("b/b".parse::<AdjectiveStress>(), Ok(stress![b / b]));
+        assert_eq!("a/a′".parse::<AdjectiveStress>(), Ok(stress![a / a1]));
+        assert_eq!("b/b′".parse::<AdjectiveStress>(), Ok(stress![b / b1]));
+        assert_eq!("b/c′".parse::<AdjectiveStress>(), Ok(stress![b / c1]));
+        assert_eq!("c/c′".parse::<AdjectiveStress>(), Err(Error::InvalidType));
+
+        assert_eq!("a".parse::<VerbStress>(), Ok(stress![a]));
+        assert_eq!("b".parse::<VerbStress>(), Ok(stress![b]));
+        assert_eq!("c".parse::<VerbStress>(), Ok(stress![c]));
+        assert_eq!("d".parse::<VerbStress>(), Err(Error::InvalidType));
+        assert_eq!("a′".parse::<VerbStress>(), Err(Error::InvalidType));
+        assert_eq!("b′".parse::<VerbStress>(), Err(Error::InvalidType));
+        assert_eq!("c′".parse::<VerbStress>(), Ok(stress![c1]));
+        assert_eq!("c″".parse::<VerbStress>(), Err(Error::InvalidType));
+        assert_eq!("f″".parse::<VerbStress>(), Err(Error::InvalidType));
+
+        assert_eq!("a/a".parse::<VerbStress>(), Ok(stress![a / a]));
+        assert_eq!("b/a".parse::<VerbStress>(), Ok(stress![b / a]));
+        assert_eq!("c/a".parse::<VerbStress>(), Ok(stress![c / a]));
+        assert_eq!("b/b".parse::<VerbStress>(), Ok(stress![b / b]));
+        assert_eq!("a/b".parse::<VerbStress>(), Ok(stress![a / b]));
+        assert_eq!("c/c".parse::<VerbStress>(), Ok(stress![c / c]));
+        assert_eq!("d/a".parse::<VerbStress>(), Err(Error::InvalidType));
+        assert_eq!("a′/a".parse::<VerbStress>(), Err(Error::InvalidType));
+        assert_eq!("b′/a".parse::<VerbStress>(), Err(Error::InvalidType));
+        assert_eq!("c′/a".parse::<VerbStress>(), Ok(stress![c1 / a]));
+        assert_eq!("c″/a".parse::<VerbStress>(), Err(Error::InvalidType));
+        assert_eq!("f″/a".parse::<VerbStress>(), Err(Error::InvalidType));
     }
 }

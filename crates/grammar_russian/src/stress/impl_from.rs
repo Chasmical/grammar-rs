@@ -113,7 +113,7 @@ impl_const_TryFrom!(<AnyDualStress> for AdjectiveStress {
             let alt = const_try!(value.main._try_into(), Self::Error::Short);
             Ok(Self::new(
                 // FIXME(const-hack): Replace with `?`.
-                const_try!(AnyStress::_from(alt)._try_into(), Self::Error::Full),
+                const_try!(AnyStress::_from(alt).unprime()._try_into(), Self::Error::Full),
                 alt
             ))
         }
