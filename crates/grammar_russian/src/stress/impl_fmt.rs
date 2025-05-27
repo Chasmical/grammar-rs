@@ -185,9 +185,9 @@ impl std::str::FromStr for AnyDualStress {
 }
 
 macro_rules! derive_stress_impls {
-    ($($src:ty: [$($t:ty),*]),*) => ($($(
+    ($($t:ty),* $(,)?) => ($(
         impl std::str::FromStr for $t {
-            type Err = <$src as std::str::FromStr>::Err;
+            type Err = ParseStressError;
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 AnyStress::from_str(s)?.try_into().or(Err(Self::Err::InvalidType))
             }
@@ -195,15 +195,36 @@ macro_rules! derive_stress_impls {
         impl std::fmt::Display for $t {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
                 // TODO: there should be a special constructor, that converts `a/a` to `a`
-                <$src>::from(*self).fmt(f)
+                AnyStress::from(*self).fmt(f)
             }
         }
-    )*)*);
+    )*);
+}
+derive_stress_impls! {
+    NounStress, PronounStress, AdjectiveFullStress, AdjectiveShortStress, VerbPresentStress, VerbPastStress,
 }
 
-derive_stress_impls! {
-    AnyStress: [NounStress, PronounStress, AdjectiveFullStress, AdjectiveShortStress, VerbPresentStress, VerbPastStress],
-    AnyDualStress: [AdjectiveStress, VerbStress]
+impl std::str::FromStr for AdjectiveStress {
+    type Err = ParseStressError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        AnyDualStress::from_str(s)?.try_into().or(Err(Self::Err::InvalidType))
+    }
+}
+impl std::str::FromStr for VerbStress {
+    type Err = ParseStressError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        AnyDualStress::from_str(s)?.try_into().or(Err(Self::Err::InvalidType))
+    }
+}
+impl std::fmt::Display for AdjectiveStress {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.abbr().fmt(f)
+    }
+}
+impl std::fmt::Display for VerbStress {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.abbr().fmt(f)
+    }
 }
 
 #[cfg(test)]

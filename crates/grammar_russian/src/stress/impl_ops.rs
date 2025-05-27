@@ -1,4 +1,4 @@
-use crate::{categories::*, declension::DeclInfo};
+use crate::{categories::*, declension::DeclInfo, util::const_traits::*};
 
 use super::defs::*;
 
@@ -41,6 +41,56 @@ impl AnyStress {
             Self::F => Self::Fpp,
             _ => return None,
         })
+    }
+}
+
+impl AnyDualStress {
+    pub const fn abbr_adj(self) -> AnyDualStress {
+        if let Some(abbr) = self.try_abbr_adj() { abbr._into() } else { self }
+    }
+    pub const fn try_abbr_adj(self) -> Option<AnyStress> {
+        if let Some(alt) = self.alt {
+            if alt.unprime() as u8 == self.main as u8 {
+                return Some(alt);
+            }
+        }
+        None
+    }
+
+    pub const fn abbr_verb(self) -> AnyDualStress {
+        if let Some(abbr) = self.try_abbr_verb() { abbr._into() } else { self }
+    }
+    pub const fn try_abbr_verb(self) -> Option<AnyStress> {
+        match self.alt {
+            Some(AnyStress::A) => Some(self.main),
+            _ => None,
+        }
+    }
+}
+
+impl AdjectiveStress {
+    pub const fn abbr(self) -> AnyDualStress {
+        if let Some(abbr) = self.try_abbr() { abbr._into() } else { self._into() }
+    }
+    pub const fn try_abbr(self) -> Option<AdjectiveShortStress> {
+        match self {
+            Self::A_A => Some(AdjectiveShortStress::A),
+            Self::B_B => Some(AdjectiveShortStress::B),
+            Self::A_Ap => Some(AdjectiveShortStress::Ap),
+            Self::B_Bp => Some(AdjectiveShortStress::Bp),
+            _ => None,
+        }
+    }
+}
+impl VerbStress {
+    pub const fn abbr(self) -> AnyDualStress {
+        if let Some(abbr) = self.try_abbr() { abbr._into() } else { self._into() }
+    }
+    pub const fn try_abbr(self) -> Option<VerbPresentStress> {
+        match self.past {
+            VerbPastStress::A => Some(self.present),
+            _ => None,
+        }
     }
 }
 

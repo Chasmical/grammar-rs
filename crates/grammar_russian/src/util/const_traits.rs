@@ -19,6 +19,11 @@ pub(crate) trait _TryInto<T>: Sized {
     fn _try_into(self) -> Result<T, Self::Error>;
 }
 
+impl<T> const _From<T> for T {
+    fn _from(value: T) -> T {
+        value
+    }
+}
 impl<T, U: ~const _From<T>> const _Into<U> for T {
     fn _into(self) -> U {
         U::_from(self)
