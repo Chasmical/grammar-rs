@@ -48,7 +48,6 @@ impl Letter {
     pub const fn is_sibilant(self) -> bool {
         matches!(self, ж | ц | ч | ш | щ)
     }
-    #[rustfmt::skip]
     pub const fn is_non_sibilant_consonant(self) -> bool {
         matches!(self, б | в | г | д | з | й | к | л | м | н | п | р | с | т | ф | х)
     }
@@ -57,17 +56,48 @@ impl Letter {
         matches!(self, б | в | г | д | ж | з | й | к | л | м | н | п | р | с | т | ф | х | ц | ч | ш | щ)
     }
 
-    pub const fn convert(slice: &[u8]) -> &[Letter] {
+    pub const fn from_bytes(slice: &[u8]) -> &[Letter] {
         unsafe {
             let ptr = std::mem::transmute(slice.as_ptr());
             std::slice::from_raw_parts(ptr, slice.len() >> 1)
         }
     }
-    pub const fn convert_mut(slice: &mut [u8]) -> &mut [Letter] {
+    pub const fn from_bytes_mut(slice: &mut [u8]) -> &mut [Letter] {
         unsafe {
             let ptr = std::mem::transmute(slice.as_mut_ptr());
             std::slice::from_raw_parts_mut(ptr, slice.len() >> 1)
         }
+    }
+}
+
+#[const_trait]
+pub trait LetterSliceExt {
+    fn as_str(&self) -> &str;
+    fn as_bytes(&self) -> &[u8];
+    fn as_mut_str(&mut self) -> &mut str;
+    fn as_bytes_mut(&mut self) -> &mut [u8];
+}
+
+impl const LetterSliceExt for [Letter] {
+    fn as_str(&self) -> &str {
+        unsafe {
+            let ptr = std::mem::transmute(self.as_ptr());
+            let slice = std::slice::from_raw_parts(ptr, self.len() << 1);
+            str::from_utf8_unchecked(slice)
+        }
+    }
+    fn as_bytes(&self) -> &[u8] {
+        self.as_str().as_bytes()
+    }
+    fn as_mut_str(&mut self) -> &mut str {
+        unsafe {
+            let ptr = std::mem::transmute(self.as_mut_ptr());
+            let slice = std::slice::from_raw_parts_mut(ptr, self.len() << 1);
+            str::from_utf8_unchecked_mut(slice)
+        }
+    }
+    fn as_bytes_mut(&mut self) -> &mut [u8] {
+        unsafe { self.as_mut_str().as_bytes_mut() }
     }
 }
 
@@ -90,7 +120,7 @@ mod tests {
         assert_eq!(ё.as_str(), "ё");
 
         let bytes: &[u8] = &[0xD0, 0xB0, 0xD0, 0xBF, 0xD1, 0x80, 0xD1, 0x8F, 0xD1, 0x91];
-        let letters: &[Letter] = Letter::convert(bytes);
+        let letters: &[Letter] = Letter::from_bytes(bytes);
         assert_eq!(letters, [а, п, р, я, ё]);
     }
 }

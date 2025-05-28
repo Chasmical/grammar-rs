@@ -15,20 +15,22 @@ impl InflectionBuffer {
     }
 
     pub const fn stem(&self) -> &[Letter] {
-        let ptr = unsafe { std::mem::transmute(self.dst.as_ptr()) };
-        unsafe { std::slice::from_raw_parts(ptr, self.stem_len >> 1) }
+        let slice = Letter::from_bytes(self.dst.as_slice());
+        unsafe { std::slice::from_raw_parts(slice.as_ptr(), self.stem_len) }
     }
     pub const fn stem_mut(&mut self) -> &mut [Letter] {
-        let ptr = unsafe { std::mem::transmute(self.dst.as_mut_ptr()) };
-        unsafe { std::slice::from_raw_parts_mut(ptr, self.stem_len >> 1) }
+        let slice = Letter::from_bytes_mut(self.dst.as_mut_slice());
+        unsafe { std::slice::from_raw_parts_mut(slice.as_mut_ptr(), self.stem_len) }
     }
     pub const fn ending(&self) -> &[Letter] {
-        let ptr = unsafe { std::mem::transmute(self.dst.as_ptr().add(self.stem_len)) };
-        unsafe { std::slice::from_raw_parts(ptr, (self.dst.len() - self.stem_len) >> 1) }
+        let slice = Letter::from_bytes(self.dst.as_slice());
+        let ptr = slice.as_ptr().wrapping_add(self.stem_len);
+        unsafe { std::slice::from_raw_parts(ptr, self.dst.len() - self.stem_len) }
     }
     pub const fn ending_mut(&mut self) -> &mut [Letter] {
-        let ptr = unsafe { std::mem::transmute(self.dst.as_mut_ptr().add(self.stem_len)) };
-        unsafe { std::slice::from_raw_parts_mut(ptr, (self.dst.len() - self.stem_len) >> 1) }
+        let slice = Letter::from_bytes_mut(self.dst.as_mut_slice());
+        let ptr = slice.as_mut_ptr().wrapping_add(self.stem_len);
+        unsafe { std::slice::from_raw_parts_mut(ptr, self.dst.len() - self.stem_len) }
     }
 
     pub fn append_to_ending(&mut self, append: &str) {
