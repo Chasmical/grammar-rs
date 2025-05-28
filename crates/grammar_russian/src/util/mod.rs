@@ -1,3 +1,6 @@
+pub(crate) mod unsafe_buf;
+pub(crate) use unsafe_buf::*;
+
 pub(crate) mod const_traits;
 pub(crate) use const_traits::*;
 
