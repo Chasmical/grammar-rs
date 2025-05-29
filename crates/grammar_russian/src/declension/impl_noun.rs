@@ -31,9 +31,9 @@ impl<'a> Noun<'a> {
 
             match decl {
                 Declension::Noun(decl) => {
-                    if let Some((gender, animacy)) = decl.override_gender {
-                        info.gender = gender;
-                        info.animacy = animacy;
+                    if let Some(gender_animacy) = decl.override_gender {
+                        info.gender = gender_animacy.gender();
+                        info.animacy = gender_animacy.animacy();
                     }
                     decl.inflect(&mut buf, info)
                 },

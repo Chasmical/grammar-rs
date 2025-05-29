@@ -12,7 +12,7 @@ pub struct NounDeclension {
     pub stem_type: NounStemType,
     pub flags: DeclensionFlags,
     pub stress: NounStress,
-    pub override_gender: Option<(Gender, Animacy)>,
+    pub override_gender: Option<GenderAnimacy>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PronounDeclension {
