@@ -1,6 +1,7 @@
 mod defs;
 mod endings;
 mod impl_adjective;
+mod impl_fmt;
 mod impl_noun;
 mod impl_pronoun;
 mod stem_types;

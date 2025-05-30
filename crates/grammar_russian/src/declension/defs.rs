@@ -25,7 +25,6 @@ pub struct AdjectiveDeclension {
     pub stem_type: AdjectiveStemType,
     pub flags: DeclensionFlags,
     pub stress: AdjectiveStress,
-    pub is_reflexive: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,9 +102,6 @@ bitflags::bitflags! {
     }
 }
 impl DeclensionFlags {
-    const ANY_CIRCLED_DIGITS: Self =
-        (Self::CIRCLED_ONE.union(Self::CIRCLED_TWO)).union(Self::CIRCLED_THREE);
-
     pub const fn has_star(self) -> bool {
         self.intersects(Self::STAR)
     }
@@ -124,8 +120,20 @@ impl DeclensionFlags {
     pub const fn has_alternating_yo(self) -> bool {
         self.intersects(Self::ALTERNATING_YO)
     }
+
+    const ALL_LEADING_FLAGS: Self = Self::STAR.union(Self::CIRCLE);
+    const ALL_TRAILING_FLAGS: Self = Self::ALL_CIRCLED_DIGITS.union(Self::ALTERNATING_YO);
+    const ALL_CIRCLED_DIGITS: Self =
+        Self::CIRCLED_ONE.union(Self::CIRCLED_TWO).union(Self::CIRCLED_THREE);
+
+    pub const fn has_any_leading_flags(self) -> bool {
+        self.intersects(Self::ALL_LEADING_FLAGS)
+    }
+    pub const fn has_any_trailing_flags(self) -> bool {
+        self.intersects(Self::ALL_TRAILING_FLAGS)
+    }
     pub const fn has_any_circled_digits(self) -> bool {
-        self.intersects(Self::ANY_CIRCLED_DIGITS)
+        self.intersects(Self::ALL_CIRCLED_DIGITS)
     }
 }
 
