@@ -6,6 +6,12 @@ pub enum Declension {
     Pronoun(PronounDeclension),
     Adjective(AdjectiveDeclension),
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DeclensionKind {
+    Noun,
+    Pronoun,
+    Adjective,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NounDeclension {
@@ -25,6 +31,25 @@ pub struct AdjectiveDeclension {
     pub stem_type: AdjectiveStemType,
     pub flags: DeclensionFlags,
     pub stress: AdjectiveStress,
+}
+
+impl Declension {
+    pub const fn kind(self) -> DeclensionKind {
+        match self {
+            Self::Noun(_) => DeclensionKind::Noun,
+            Self::Pronoun(_) => DeclensionKind::Pronoun,
+            Self::Adjective(_) => DeclensionKind::Adjective,
+        }
+    }
+    pub const fn as_noun(self) -> Option<NounDeclension> {
+        if let Self::Noun(x) = self { Some(x) } else { None }
+    }
+    pub const fn as_pronoun(self) -> Option<PronounDeclension> {
+        if let Self::Pronoun(x) = self { Some(x) } else { None }
+    }
+    pub const fn as_adjective(self) -> Option<AdjectiveDeclension> {
+        if let Self::Adjective(x) = self { Some(x) } else { None }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -139,17 +164,17 @@ impl DeclensionFlags {
 
 impl_const_From!(<NounDeclension> for Declension {
     fn from(value: NounDeclension) -> Self {
-        Declension::Noun(value)
+        Self::Noun(value)
     }
 });
 impl_const_From!(<PronounDeclension> for Declension {
     fn from(value: PronounDeclension) -> Self {
-        Declension::Pronoun(value)
+        Self::Pronoun(value)
     }
 });
 impl_const_From!(<AdjectiveDeclension> for Declension {
     fn from(value: AdjectiveDeclension) -> Self {
-        Declension::Adjective(value)
+        Self::Adjective(value)
     }
 });
 
