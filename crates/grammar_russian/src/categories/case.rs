@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use super::HasAnimacy;
+use super::{HasAnimacy, Number};
 
 use crate::util::{const_traits::*, enum_conversion};
 
@@ -43,15 +43,7 @@ enum_conversion! {
 )]
 pub struct CaseError;
 
-/// A Russian grammatical number.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum Number {
-    #[default]
-    Singular = 0,
-    Plural = 1,
-}
-
-// Traits providing CaseEx, Case and Number values
+// Traits providing CaseEx and Case values
 #[const_trait]
 pub trait HasCaseEx {
     fn case_ex(&self) -> CaseEx;
@@ -60,19 +52,8 @@ pub trait HasCaseEx {
 pub trait HasCase {
     fn case(&self) -> Case;
 }
-#[const_trait]
-pub trait HasNumber {
-    fn number(&self) -> Number;
 
-    fn is_singular(&self) -> bool {
-        matches!(self.number(), Number::Singular)
-    }
-    fn is_plural(&self) -> bool {
-        matches!(self.number(), Number::Plural)
-    }
-}
-
-// CaseEx, Case and Number provide themselves
+// CaseEx and Case provide themselves
 impl const HasCaseEx for CaseEx {
     fn case_ex(&self) -> CaseEx {
         *self
@@ -80,11 +61,6 @@ impl const HasCaseEx for CaseEx {
 }
 impl const HasCase for Case {
     fn case(&self) -> Case {
-        *self
-    }
-}
-impl const HasNumber for Number {
-    fn number(&self) -> Number {
         *self
     }
 }
@@ -118,5 +94,8 @@ impl Case {
     }
     pub const fn is_nom_or_acc_inan(self, animacy: impl ~const HasAnimacy + Copy) -> bool {
         matches!(self.acc_is_nom(animacy), Some(true))
+    }
+    pub const fn is_gen_or_acc_an(self, animacy: impl ~const HasAnimacy + Copy) -> bool {
+        matches!(self.acc_is_nom(animacy), Some(false))
     }
 }

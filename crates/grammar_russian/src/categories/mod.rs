@@ -1,5 +1,9 @@
-mod case_and_number;
-mod gender_and_animacy;
+mod animacy;
+mod case;
+mod gender;
+mod number;
 
-pub use case_and_number::*;
-pub use gender_and_animacy::*;
+pub use animacy::*;
+pub use case::*;
+pub use gender::*;
+pub use number::*;
