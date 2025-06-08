@@ -1,8 +1,6 @@
-use thiserror::Error;
-
 use super::{HasAnimacy, Number};
-
 use crate::util::{const_traits::*, enum_conversion};
+use thiserror::Error;
 
 /// A main or secondary Russian grammatical case.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -97,5 +95,71 @@ impl Case {
     }
     pub const fn is_gen_or_acc_an(self, animacy: impl ~const HasAnimacy + Copy) -> bool {
         matches!(self.acc_is_nom(animacy), Some(false))
+    }
+}
+
+// Case abbreviation constants
+impl CaseEx {
+    pub const NOM: Self = Self::Nominative;
+    pub const GEN: Self = Self::Genitive;
+    pub const DAT: Self = Self::Dative;
+    pub const ACC: Self = Self::Accusative;
+    pub const INS: Self = Self::Instrumental;
+    pub const PRP: Self = Self::Prepositional;
+    pub const PRT: Self = Self::Partitive;
+    pub const TRANSL: Self = Self::Translative;
+    pub const LOC: Self = Self::Locative;
+}
+impl Case {
+    pub const NOM: Self = Self::Nominative;
+    pub const GEN: Self = Self::Genitive;
+    pub const DAT: Self = Self::Dative;
+    pub const ACC: Self = Self::Accusative;
+    pub const INS: Self = Self::Instrumental;
+    pub const PRP: Self = Self::Prepositional;
+}
+
+impl CaseEx {
+    pub const fn abbr(self) -> &'static str {
+        // Note: small caps 'ꜱ' (U+A731) may not render correctly in some fonts,
+        //       so a regular 's' can be used instead for better consistency.
+        match self {
+            Self::NOM => "ɴᴏᴍ",
+            Self::GEN => "ɢᴇɴ",
+            Self::DAT => "ᴅᴀᴛ",
+            Self::ACC => "ᴀᴄᴄ",
+            Self::INS => "ɪɴꜱ",
+            Self::PRP => "ᴘʀᴘ",
+            Self::PRT => "ᴘʀᴛ",
+            Self::TRANSL => "ᴛʀᴀɴꜱʟ",
+            Self::LOC => "ʟᴏᴄ",
+        }
+    }
+    pub const fn abbr_ascii(self) -> &'static str {
+        match self {
+            Self::NOM => "NOM",
+            Self::GEN => "GEN",
+            Self::DAT => "DAT",
+            Self::ACC => "ACC",
+            Self::INS => "INS",
+            Self::PRP => "PRP",
+            Self::PRT => "PRT",
+            Self::TRANSL => "TRANSL",
+            Self::LOC => "LOC",
+        }
+    }
+}
+impl Case {
+    pub const fn abbr(self) -> &'static str {
+        CaseEx::_from(self).abbr()
+    }
+    pub const fn abbr_ascii(self) -> &'static str {
+        CaseEx::_from(self).abbr_ascii()
+    }
+}
+
+impl std::fmt::Display for CaseEx {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        (if f.alternate() { self.abbr() } else { self.abbr_ascii() }).fmt(f)
     }
 }
