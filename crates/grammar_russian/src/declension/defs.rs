@@ -31,6 +31,7 @@ pub struct AdjectiveDeclension {
     pub stem_type: AdjectiveStemType,
     pub flags: DeclensionFlags,
     pub stress: AdjectiveStress,
+    pub is_reflexive: bool,
 }
 
 impl Declension {

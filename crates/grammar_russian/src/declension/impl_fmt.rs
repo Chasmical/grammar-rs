@@ -1,6 +1,4 @@
-use crate::{
-    categories::GenderAnimacy, declension::*, letters, stress::*, util::{const_traits::*, UnsafeBuf}, Letter
-};
+use crate::{declension::*, stress::*, util::*};
 
 // Longest forms:
 // Noun     : жо 8°*f″①②③, ё   (14 chars, 26 bytes)
@@ -179,6 +177,7 @@ mod tests {
                 stem_type: AdjectiveStemType::Type1,
                 flags: DeclensionFlags::empty(),
                 stress: AdjectiveStress::B,
+                is_reflexive: false,
             }
             .to_string(),
             "п 1b",
@@ -190,6 +189,7 @@ mod tests {
                     | DeclensionFlags::CIRCLED_ONE
                     | DeclensionFlags::CIRCLED_TWO,
                 stress: AdjectiveStress::Ap,
+                is_reflexive: false,
             }
             .to_string(),
             "п 4*a′①②",
@@ -199,6 +199,7 @@ mod tests {
                 stem_type: AdjectiveStemType::Type7,
                 flags: DeclensionFlags::all(),
                 stress: AdjectiveStress::A_Cpp,
+                is_reflexive: false,
             }
             .to_string(),
             "п 7°*a/c″①②③, ё",

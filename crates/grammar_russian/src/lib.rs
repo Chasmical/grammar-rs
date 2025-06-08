@@ -1,4 +1,5 @@
 #![feature(const_trait_impl)]
+#![feature(formatting_options)]
 #![cfg_attr(test, feature(test))]
 // Fix issues with alphabet::letters::*
 #![allow(confusable_idents, non_upper_case_globals)]

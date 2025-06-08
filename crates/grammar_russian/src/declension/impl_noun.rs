@@ -3,31 +3,38 @@ use std::fmt::Display;
 use crate::{InflectionBuffer, categories::*, declension::*, letters, stress::*};
 
 pub struct Noun<'a> {
-    stem: &'a str,
-    declension: Option<Declension>,
-    gender: GenderEx,
-    animacy: Animacy,
-    tantum: Option<Number>,
+    pub stem: &'a str,
+    pub info: NounInfo,
     // exceptions: &'a [(CaseExAndNumber, &'a str)],
+}
+pub struct NounInfo {
+    pub declension: Option<Declension>,
+    pub gender: GenderEx,
+    pub animacy: Animacy,
+    pub tantum: Option<Number>,
 }
 
 impl<'a> Noun<'a> {
     pub fn inflect(
         &self,
-        f: &mut std::fmt::Formatter,
         case: CaseEx,
         number: Number,
+        f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
         // TODO: check exceptions
 
-        if let Some(decl) = self.declension {
+        if let Some(decl) = self.info.declension {
             let (case, number) = case.normalize_with(number);
-            let number = self.tantum.unwrap_or(number);
+            let number = self.info.tantum.unwrap_or(number);
+
+            let mut info = DeclInfo {
+                case,
+                number,
+                gender: self.info.gender.normalize(),
+                animacy: self.info.animacy,
+            };
 
             let mut buf = InflectionBuffer::from_stem_unchecked(self.stem);
-
-            let mut info =
-                DeclInfo { case, number, gender: self.gender.normalize(), animacy: self.animacy };
 
             match decl {
                 Declension::Noun(decl) => {
@@ -35,9 +42,9 @@ impl<'a> Noun<'a> {
                         info.gender = gender_animacy.gender();
                         info.animacy = gender_animacy.animacy();
                     }
-                    decl.inflect(&mut buf, info)
+                    decl.inflect(info, &mut buf)
                 },
-                Declension::Adjective(decl) => decl.inflect(&mut buf, info),
+                Declension::Adjective(decl) => decl.inflect(info, &mut buf),
                 Declension::Pronoun(_) => todo!(), // TODO
             };
 
@@ -49,11 +56,11 @@ impl<'a> Noun<'a> {
 }
 
 impl NounDeclension {
-    pub fn inflect(self, buf: &mut InflectionBuffer, info: DeclInfo) {
+    pub fn inflect(self, info: DeclInfo, buf: &mut InflectionBuffer) {
         buf.append_to_ending(self.get_ending(info));
 
         if self.flags.has_circle() {
-            self.apply_unique_alternation(buf, info);
+            self.apply_unique_alternation(info, buf);
         }
 
         if self.stem_type == NounStemType::Type8 && matches!(buf.ending(), [letters::я, ..]) {
@@ -63,13 +70,15 @@ impl NounDeclension {
         }
 
         if self.flags.has_star() {
-            self.apply_vowel_alternation(buf, info);
+            self.apply_vowel_alternation(info, buf);
         }
 
-        todo!() // TODO
+        if self.flags.has_alternating_yo() {
+            todo!(); // TODO: yo alternation
+        }
     }
 
-    pub fn apply_unique_alternation(self, buf: &mut InflectionBuffer, info: DeclInfo) {
+    pub fn apply_unique_alternation(self, info: DeclInfo, buf: &mut InflectionBuffer) {
         use letters::*;
 
         match buf.stem_mut() {
@@ -164,7 +173,7 @@ impl NounDeclension {
         };
     }
 
-    pub fn apply_vowel_alternation(self, buf: &mut InflectionBuffer, info: DeclInfo) {
+    pub fn apply_vowel_alternation(self, info: DeclInfo, buf: &mut InflectionBuffer) {
         let gender = info.gender();
 
         if gender == Gender::Masculine

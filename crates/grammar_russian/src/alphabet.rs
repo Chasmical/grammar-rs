@@ -1,7 +1,7 @@
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[repr(transparent)]
 pub struct Letter {
-    utf8: [u8; 2],
+    pub(crate) utf8: [u8; 2],
 }
 
 pub mod letters {
