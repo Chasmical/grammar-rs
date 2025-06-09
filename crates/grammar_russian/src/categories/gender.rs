@@ -1,5 +1,4 @@
 use crate::util::{const_traits::*, enum_conversion};
-
 use thiserror::Error;
 
 /// A main or secondary Russian grammatical gender: [`Masculine`][GenderEx::Masculine],
@@ -62,5 +61,67 @@ impl<T: ~const HasGender> const HasGenderEx for T {
 impl GenderEx {
     pub const fn normalize(self) -> Gender {
         if let Ok(x) = self._try_into() { x } else { Gender::Feminine }
+    }
+}
+
+// Gender abbreviation constants
+impl GenderEx {
+    pub const MASC: Self = Self::Masculine;
+    pub const NEUT: Self = Self::Neuter;
+    pub const FEM: Self = Self::Feminine;
+}
+impl Gender {
+    pub const MASC: Self = Self::Masculine;
+    pub const NEUT: Self = Self::Neuter;
+    pub const FEM: Self = Self::Feminine;
+}
+
+impl GenderEx {
+    pub const fn abbr_upper(self) -> &'static str {
+        match self {
+            Self::Masculine => "MASC",
+            Self::Neuter => "NEUT",
+            Self::Feminine => "FEM",
+            Self::Common => "MASC/FEM",
+        }
+    }
+    pub const fn abbr_lower(self) -> &'static str {
+        match self {
+            Self::Masculine => "masc",
+            Self::Neuter => "neut",
+            Self::Feminine => "fem",
+            Self::Common => "masc/fem",
+        }
+    }
+    pub const fn abbr_smcp(self) -> &'static str {
+        // Note: small caps 'ꜰ' (U+A730) may not render correctly in some fonts.
+        match self {
+            Self::Masculine => "ᴍᴀꜱᴄ",
+            Self::Neuter => "ɴᴇᴜᴛ",
+            Self::Feminine => "ꜰᴇᴍ",
+            Self::Common => "ᴍᴀꜱᴄ/ꜰᴇᴍ",
+        }
+    }
+}
+impl Gender {
+    pub const fn abbr_upper(self) -> &'static str {
+        GenderEx::_from(self).abbr_upper()
+    }
+    pub const fn abbr_lower(self) -> &'static str {
+        GenderEx::_from(self).abbr_lower()
+    }
+    pub const fn abbr_smcp(self) -> &'static str {
+        GenderEx::_from(self).abbr_smcp()
+    }
+}
+
+impl std::fmt::Display for GenderEx {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.abbr_upper().fmt(f)
+    }
+}
+impl std::fmt::Display for Gender {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.abbr_upper().fmt(f)
     }
 }

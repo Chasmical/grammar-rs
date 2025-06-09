@@ -33,3 +33,26 @@ impl const HasAnimacy for Animacy {
         *self
     }
 }
+
+impl Animacy {
+    pub const INAN: Self = Self::Inanimate;
+    pub const AN: Self = Self::Animate;
+}
+
+impl Animacy {
+    pub const fn abbr_upper(self) -> &'static str {
+        if self.is_inanimate() { "INAN" } else { "AN" }
+    }
+    pub const fn abbr_lower(self) -> &'static str {
+        if self.is_inanimate() { "inan" } else { "an" }
+    }
+    pub const fn abbr_smcp(self) -> &'static str {
+        if self.is_inanimate() { "ɪɴᴀɴ" } else { "ᴀɴ" }
+    }
+}
+
+impl std::fmt::Display for Animacy {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.abbr_upper().fmt(f)
+    }
+}

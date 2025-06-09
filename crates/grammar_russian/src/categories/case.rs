@@ -120,7 +120,33 @@ impl Case {
 }
 
 impl CaseEx {
-    pub const fn abbr(self) -> &'static str {
+    pub const fn abbr_upper(self) -> &'static str {
+        match self {
+            Self::NOM => "NOM",
+            Self::GEN => "GEN",
+            Self::DAT => "DAT",
+            Self::ACC => "ACC",
+            Self::INS => "INS",
+            Self::PRP => "PRP",
+            Self::PRT => "PRT",
+            Self::TRANSL => "TRANSL",
+            Self::LOC => "LOC",
+        }
+    }
+    pub const fn abbr_lower(self) -> &'static str {
+        match self {
+            Self::NOM => "nom",
+            Self::GEN => "gen",
+            Self::DAT => "dat",
+            Self::ACC => "acc",
+            Self::INS => "ins",
+            Self::PRP => "prp",
+            Self::PRT => "prt",
+            Self::TRANSL => "transl",
+            Self::LOC => "loc",
+        }
+    }
+    pub const fn abbr_smcp(self) -> &'static str {
         // Note: small caps 'ꜱ' (U+A731) may not render correctly in some fonts,
         //       so a regular 's' can be used instead for better consistency.
         match self {
@@ -135,31 +161,26 @@ impl CaseEx {
             Self::LOC => "ʟᴏᴄ",
         }
     }
-    pub const fn abbr_ascii(self) -> &'static str {
-        match self {
-            Self::NOM => "NOM",
-            Self::GEN => "GEN",
-            Self::DAT => "DAT",
-            Self::ACC => "ACC",
-            Self::INS => "INS",
-            Self::PRP => "PRP",
-            Self::PRT => "PRT",
-            Self::TRANSL => "TRANSL",
-            Self::LOC => "LOC",
-        }
-    }
 }
 impl Case {
-    pub const fn abbr(self) -> &'static str {
-        CaseEx::_from(self).abbr()
+    pub const fn abbr_upper(self) -> &'static str {
+        CaseEx::_from(self).abbr_upper()
     }
-    pub const fn abbr_ascii(self) -> &'static str {
-        CaseEx::_from(self).abbr_ascii()
+    pub const fn abbr_lower(self) -> &'static str {
+        CaseEx::_from(self).abbr_lower()
+    }
+    pub const fn abbr_smcp(self) -> &'static str {
+        CaseEx::_from(self).abbr_smcp()
     }
 }
 
 impl std::fmt::Display for CaseEx {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        (if f.alternate() { self.abbr() } else { self.abbr_ascii() }).fmt(f)
+        self.abbr_upper().fmt(f)
+    }
+}
+impl std::fmt::Display for Case {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.abbr_upper().fmt(f)
     }
 }
