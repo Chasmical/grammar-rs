@@ -15,8 +15,8 @@ impl Declension {
         match self {
             Declension::Noun(decl) => {
                 if let Some(gender_animacy) = decl.override_gender {
-                    let gen_an_len = gender_animacy.fmt_to(dst.sub_buf()).len();
-                    dst.advance_by(gen_an_len);
+                    let gen_an_len = gender_animacy.fmt_to(dst.chunk()).len();
+                    dst.forward(gen_an_len);
                     dst.push(' ');
                 }
                 stem_type = decl.stem_type._into();
@@ -48,8 +48,8 @@ impl Declension {
             }
         }
 
-        let stress_len = stress.fmt_to(dst.sub_buf()).len();
-        dst.advance_by(stress_len);
+        let stress_len = stress.fmt_to(dst.chunk()).len();
+        dst.forward(stress_len);
 
         if flags.has_any_trailing_flags() {
             if flags.has_circled_one() {
