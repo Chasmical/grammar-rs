@@ -15,8 +15,7 @@ impl Declension {
         match self {
             Declension::Noun(decl) => {
                 if let Some(gender_animacy) = decl.override_gender {
-                    let gen_an_len = gender_animacy.fmt_to(dst.chunk()).len();
-                    dst.forward(gen_an_len);
+                    dst.push_str(gender_animacy.abbr_zaliznyak());
                     dst.push(' ');
                 }
                 stem_type = decl.stem_type._into();
