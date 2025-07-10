@@ -53,12 +53,12 @@ impl Declension {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct DeclInfo {
-    pub(crate) case: Case,
-    pub(crate) number: Number,
-    pub(crate) gender: Gender,
-    pub(crate) animacy: Animacy,
+    pub case: Case,
+    pub number: Number,
+    pub gender: Gender,
+    pub animacy: Animacy,
 }
 
 impl const HasCase for DeclInfo {

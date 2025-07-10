@@ -24,9 +24,9 @@ impl<'a> Pronoun<'a> {
                 Declension::Noun(_) => todo!(), // TODO
             };
 
-            return buf.as_str().fmt(f);
+            buf.as_str().fmt(f)
         } else {
-            return self.stem.fmt(f);
+            self.stem.fmt(f)
         }
     }
 }

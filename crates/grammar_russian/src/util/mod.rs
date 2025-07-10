@@ -8,23 +8,32 @@ pub(crate) use const_traits::*;
 
 macro_rules! enum_conversion {
     (
-        impl From<$a:ty, Error = $err:ty> for $b:ty {
-            $($variant:ident,)*
-        }
+        $from:ty => <= $to:ty { $($variant:ident,)* }
     ) => (
-        $crate::util::impl_const_From!(<$a> for $b {
-            fn from(value: $a) -> Self {
-                match value {
-                    $(<$a>::$variant => Self::$variant,)*
-                }
+        $crate::util::impl_const_From!(<$from> for $to {
+            fn from(value: $from) -> Self {
+                match value { $(<$from>::$variant => <$to>::$variant,)* }
             }
         });
-        $crate::util::impl_const_TryFrom!(<$b> for $a {
+        $crate::util::impl_const_From!(<$to> for $from {
+            fn from(value: $to) -> Self {
+                match value { $( <$to>::$variant => <$from>::$variant, )* }
+            }
+        });
+    );
+    (
+        $from:ty => $to:ty [<= $err:ty] { $($variant:ident,)* }
+    ) => (
+        $crate::util::impl_const_From!(<$from> for $to {
+            fn from(value: $from) -> Self {
+                match value { $(<$from>::$variant => <$to>::$variant,)* }
+            }
+        });
+        $crate::util::impl_const_TryFrom!(<$to> for $from {
             type Error = $err;
-            #[allow(unreachable_patterns)]
-            fn try_from(value: $b) -> Result<Self, Self::Error> {
+            fn try_from(value: $to) -> Result<Self, Self::Error> {
                 Ok(match value {
-                    $( <$b>::$variant => Self::$variant, )*
+                    $( <$to>::$variant => <$from>::$variant, )*
                     _ => return Err(Self::Error {}),
                 })
             }

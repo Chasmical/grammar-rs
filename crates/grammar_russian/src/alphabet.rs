@@ -32,11 +32,11 @@ impl Letter {
         unsafe { str::from_utf8_unchecked(&self.utf8) }
     }
     pub const fn as_char(&self) -> char {
-        return unsafe {
+        unsafe {
             char::from_u32_unchecked(
                 (((self.utf8[0] & 0x1F) as u32) << 6) | (self.utf8[1] & 0x3F) as u32,
             )
-        };
+        }
     }
 
     pub const fn is_vowel(self) -> bool {
@@ -58,46 +58,15 @@ impl Letter {
 
     pub const fn from_bytes(slice: &[u8]) -> &[Letter] {
         unsafe {
-            let ptr = std::mem::transmute(slice.as_ptr());
+            let ptr: *const Letter = std::mem::transmute(slice.as_ptr());
             std::slice::from_raw_parts(ptr, slice.len() >> 1)
         }
     }
     pub const fn from_bytes_mut(slice: &mut [u8]) -> &mut [Letter] {
         unsafe {
-            let ptr = std::mem::transmute(slice.as_mut_ptr());
+            let ptr: *mut Letter = std::mem::transmute(slice.as_mut_ptr());
             std::slice::from_raw_parts_mut(ptr, slice.len() >> 1)
         }
-    }
-}
-
-#[const_trait]
-pub trait LetterSliceExt {
-    fn as_str(&self) -> &str;
-    fn as_bytes(&self) -> &[u8];
-    fn as_mut_str(&mut self) -> &mut str;
-    fn as_bytes_mut(&mut self) -> &mut [u8];
-}
-
-impl const LetterSliceExt for [Letter] {
-    fn as_str(&self) -> &str {
-        unsafe {
-            let ptr = std::mem::transmute(self.as_ptr());
-            let slice = std::slice::from_raw_parts(ptr, self.len() << 1);
-            str::from_utf8_unchecked(slice)
-        }
-    }
-    fn as_bytes(&self) -> &[u8] {
-        self.as_str().as_bytes()
-    }
-    fn as_mut_str(&mut self) -> &mut str {
-        unsafe {
-            let ptr = std::mem::transmute(self.as_mut_ptr());
-            let slice = std::slice::from_raw_parts_mut(ptr, self.len() << 1);
-            str::from_utf8_unchecked_mut(slice)
-        }
-    }
-    fn as_bytes_mut(&mut self) -> &mut [u8] {
-        unsafe { self.as_mut_str().as_bytes_mut() }
     }
 }
 
@@ -107,11 +76,11 @@ mod tests {
 
     #[test]
     fn convert() {
-        assert_eq!(а.as_char(), 'а'); // 0xD0 0xB0
-        assert_eq!(п.as_char(), 'п'); // 0xD0 0xBF
-        assert_eq!(р.as_char(), 'р'); // 0xD1 0x80
-        assert_eq!(я.as_char(), 'я'); // 0xD1 0x8F
-        assert_eq!(ё.as_char(), 'ё'); // 0xD1 0x91
+        assert_eq!(а.as_char(), 'а');
+        assert_eq!(п.as_char(), 'п');
+        assert_eq!(р.as_char(), 'р');
+        assert_eq!(я.as_char(), 'я');
+        assert_eq!(ё.as_char(), 'ё');
 
         assert_eq!(а.as_str(), "а");
         assert_eq!(п.as_str(), "п");
@@ -119,7 +88,7 @@ mod tests {
         assert_eq!(я.as_str(), "я");
         assert_eq!(ё.as_str(), "ё");
 
-        let bytes: &[u8] = &[0xD0, 0xB0, 0xD0, 0xBF, 0xD1, 0x80, 0xD1, 0x8F, 0xD1, 0x91];
+        let bytes: &[u8] = "апряё".as_bytes();
         let letters: &[Letter] = Letter::from_bytes(bytes);
         assert_eq!(letters, [а, п, р, я, ё]);
     }

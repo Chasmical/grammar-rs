@@ -21,11 +21,9 @@ pub enum Gender {
     Feminine = 2,
 }
 
-enum_conversion! {
-    impl From<Gender, Error = GenderError> for GenderEx {
-        Masculine, Neuter, Feminine,
-    }
-}
+enum_conversion!(Gender => GenderEx [<= GenderError] {
+    Masculine, Neuter, Feminine,
+});
 #[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
 #[error("gender must be one of the main 3: masculine, neuter or feminine")]
 pub struct GenderError;

@@ -203,7 +203,7 @@ const fn get_ending(index: u8) -> &'static str {
         let index = index as usize;
         let ptr = ENDINGS.as_ptr().add((index & 0x3F) << 1);
         let slice = std::slice::from_raw_parts(ptr, (index >> 6) << 1);
-        return str::from_utf8_unchecked(slice);
+        str::from_utf8_unchecked(slice)
     }
 }
 

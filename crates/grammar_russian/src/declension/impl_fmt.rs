@@ -1,19 +1,20 @@
 use crate::{declension::*, stress::*, util::*};
 
 // Longest forms:
-// Noun     : жо 8°*f″①②③, ё   (14 chars, 26 bytes)
-// Pronoun  : мс 8°*f①②③, ё    (13 chars, 23 bytes)
-// Adjective: п 8°*f″/f″①②③, ё (16 chars, 29 bytes)
+// Noun     : жо 8°*f″①②③, ё   (26 bytes, 14 chars)
+// Pronoun  : мс 8°*f①②③, ё    (23 bytes, 13 chars)
+// Adjective: п 8°*f″/f″①②③, ё (29 bytes, 16 chars)
 pub const DECLENSION_MAX_LEN: usize = 29;
+pub const DECLENSION_MAX_CHARS: usize = 16;
 
 impl Declension {
-    pub const fn fmt_to<'a>(self, dst: &'a mut [u8; DECLENSION_MAX_LEN]) -> &'a str {
+    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
         let mut dst = UnsafeBuf::new(dst);
 
         let (stem_type, stress, flags): (AnyStemType, AnyDualStress, DeclensionFlags);
 
         match self {
-            Declension::Noun(decl) => {
+            Self::Noun(decl) => {
                 if let Some(gender_animacy) = decl.override_gender {
                     dst.push_str(gender_animacy.abbr_zaliznyak());
                     dst.push(' ');
@@ -22,13 +23,13 @@ impl Declension {
                 stress = decl.stress._into();
                 flags = decl.flags;
             },
-            Declension::Pronoun(decl) => {
+            Self::Pronoun(decl) => {
                 dst.push_str("мс ");
                 stem_type = decl.stem_type._into();
                 stress = decl.stress._into();
                 flags = decl.flags;
             },
-            Declension::Adjective(decl) => {
+            Self::Adjective(decl) => {
                 dst.push_str("п ");
                 stem_type = decl.stem_type._into();
                 stress = decl.stress.abbr();
@@ -108,7 +109,8 @@ impl std::fmt::Display for AdjectiveDeclension {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParseDeclensionError {
     Invalid,
-    InvalidStemType,
+    StemTypeInvalid,
+    StemTypeIncompatible,
     InvalidStress(ParseStressError),
     InvalidFlags,
 }

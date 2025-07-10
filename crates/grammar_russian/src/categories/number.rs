@@ -26,6 +26,7 @@ impl const HasNumber for Number {
     }
 }
 
+// Number abbreviation constants
 impl Number {
     pub const SG: Self = Self::Singular;
     pub const PL: Self = Self::Plural;

@@ -30,11 +30,9 @@ pub enum Case {
     Prepositional = 5,
 }
 
-enum_conversion! {
-    impl From<Case, Error = CaseError> for CaseEx {
-        Nominative, Genitive, Dative, Accusative, Instrumental, Prepositional,
-    }
-}
+enum_conversion!(Case => CaseEx [<= CaseError] {
+    Nominative, Genitive, Dative, Accusative, Instrumental, Prepositional,
+});
 #[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
 #[error(
     "case must be one of the main 6: nominative, genitive, dative, accusative, instrumental or prepositional"
@@ -76,7 +74,7 @@ impl CaseEx {
             CaseEx::Partitive => (Case::Genitive, number),
             CaseEx::Translative => (Case::Nominative, Number::Plural),
             CaseEx::Locative => (Case::Prepositional, number),
-            _ => (unsafe { std::mem::transmute(self) }, number),
+            _ => (unsafe { std::mem::transmute::<CaseEx, Case>(self) }, number),
         }
     }
 }

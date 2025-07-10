@@ -55,7 +55,21 @@ impl<'a> UnsafeParser<'a> {
                 return true;
             }
         }
-        false
+        return false;
+
+        const fn eq_slices(left: &[u8], right: &[u8]) -> bool {
+            if left.len() != right.len() {
+                return false;
+            }
+            let mut idx = 0;
+            while idx < left.len() {
+                if left[idx] != right[idx] {
+                    return false;
+                }
+                idx += 1;
+            }
+            true
+        }
     }
     pub const fn skip_str(&mut self, s: &str) -> bool {
         self.skip_bytes(s.as_bytes())
@@ -63,20 +77,6 @@ impl<'a> UnsafeParser<'a> {
     pub const fn skip(&mut self, ch: char) -> bool {
         self.skip_str(ch.encode_utf8(&mut [0; 4]))
     }
-}
-
-const fn eq_slices(left: &[u8], right: &[u8]) -> bool {
-    if left.len() != right.len() {
-        return false;
-    }
-    let mut idx = 0;
-    while idx < left.len() {
-        if left[idx] != right[idx] {
-            return false;
-        }
-        idx += 1;
-    }
-    true
 }
 
 #[const_trait]

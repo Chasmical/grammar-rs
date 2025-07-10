@@ -25,13 +25,11 @@ pub enum GenderAnimacy {
     FeminineAnimate = 5,
 }
 
-enum_conversion! {
-    impl From<GenderAnimacy, Error = GenderError> for GenderExAnimacy {
-        MasculineInanimate, MasculineAnimate,
-        NeuterInanimate, NeuterAnimate,
-        FeminineInanimate, FeminineAnimate,
-    }
-}
+enum_conversion!(GenderAnimacy => GenderExAnimacy [<= GenderError] {
+    MasculineInanimate, MasculineAnimate,
+    NeuterInanimate, NeuterAnimate,
+    FeminineInanimate, FeminineAnimate,
+});
 
 impl GenderExAnimacy {
     pub const fn new(gender_ex: GenderEx, animacy: Animacy) -> Self {

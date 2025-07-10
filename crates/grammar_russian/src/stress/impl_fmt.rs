@@ -1,4 +1,5 @@
-use crate::{util::*, stress::*};
+use super::defs::*;
+use crate::util::*;
 
 impl AnyStress {
     pub const fn fmt_to(self, dst: &mut [u8; 4]) -> &mut str {
@@ -16,54 +17,46 @@ impl AnyStress {
         // If the stress has primes, it will occupy the entire 4 byte buffer
         if self.has_any_primes() {
             // Write the UTF-8 bytes of ′ or ″
-            let ch = match self.has_double_prime() {
-                false => '′',
-                true => '″',
-            };
+            let ch = if self.has_double_prime() { '″' } else { '′' };
             ch.encode_utf8(dst.last_chunk_mut::<3>().unwrap());
 
             // Return string slice from the entire buffer
-            return unsafe { str::from_utf8_unchecked_mut(dst) };
+            unsafe { str::from_utf8_unchecked_mut(dst) }
+        } else {
+            // Return string slice of length 1, containing only the letter
+            let slice = unsafe { std::slice::from_raw_parts_mut(dst.as_mut_ptr(), 1) };
+            unsafe { str::from_utf8_unchecked_mut(slice) }
         }
-
-        // Return string slice of length 1, containing only the letter
-        let slice = unsafe { std::slice::from_raw_parts_mut(dst.as_mut_ptr(), 1) };
-        return unsafe { str::from_utf8_unchecked_mut(slice) };
     }
 }
 impl AnyDualStress {
     pub const fn fmt_to(self, dst: &mut [u8; 9]) -> &mut str {
-        let mut offset = 0;
+        let mut dst = UnsafeBuf::new(dst);
 
         // Format main into a 4-byte sub-buffer
-        offset += self.main.fmt_to(const_slice(dst, offset)).len();
+        let main_len = self.main.fmt_to(dst.chunk()).len();
+        dst.forward(main_len);
 
         if let Some(alt) = self.alt {
             // Append '/' as a separator
-            dst[offset] = b'/';
-            offset += 1;
+            dst.push('/');
 
             // Format alt into a 4-byte sub-buffer
-            offset += alt.fmt_to(const_slice(dst, offset)).len();
+            let alt_len = alt.fmt_to(dst.chunk()).len();
+            dst.forward(alt_len);
         }
 
-        // Return string slice with current offset as length
-        let slice = unsafe { std::slice::from_raw_parts_mut(dst.as_mut_ptr(), offset) };
-        return unsafe { str::from_utf8_unchecked_mut(slice) };
-
-        const fn const_slice(dst: &mut [u8; 9], offset: usize) -> &mut [u8; 4] {
-            unsafe { &mut *(dst.as_mut_ptr().add(offset).cast::<[u8; 4]>()) }
-        }
+        dst.finish()
     }
 }
 
 impl std::fmt::Display for AnyStress {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_to(&mut [0; 4]).fmt(f)
     }
 }
 impl std::fmt::Display for AnyDualStress {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_to(&mut [0; 9]).fmt(f)
     }
 }
@@ -91,15 +84,15 @@ impl const PartialParse for AnyStress {
         };
 
         // Then parse prime indicators
-        let (primes, len) = match parser.remaining() {
-            [_, 0xE2, 0x80, 0xB2, ..] => (1, 4), // ′ (UTF-8 single prime)
-            [_, 0xE2, 0x80, 0xB3, ..] => (2, 4), // ″ (UTF-8 double prime)
-            [_, b'\'', b'\'', ..] => (2, 3),     // '' (double apostrophe)
-            [_, b'\'', ..] => (1, 2),            // ' (apostrophe)
-            [_, b'"', ..] => (2, 2),             // " (quotation)
-            _ => (0u8, 1u8),                     // no primes
+        let (primes, primes_len) = match parser.remaining() {
+            [0xE2, 0x80, 0xB2, ..] => (1, 3), // ′ (UTF-8 single prime)
+            [0xE2, 0x80, 0xB3, ..] => (2, 3), // ″ (UTF-8 double prime)
+            [b'\'', b'\'', ..] => (2, 2),     // '' (double apostrophe)
+            [b'\'', ..] => (1, 1),            // ' (apostrophe)
+            [b'"', ..] => (2, 1),             // " (quotation)
+            _ => (0u8, 0u8),                  // no primes
         };
-        parser.forward(len as usize);
+        parser.forward(primes_len as usize);
 
         Ok(match primes {
             0 => letter,
@@ -122,18 +115,16 @@ impl const PartialParse for AnyDualStress {
 
     fn partial_parse(parser: &mut UnsafeParser) -> Result<Self, Self::Err> {
         // Parse the main stress
-        // FIXME(const-hack): Replace with `?`.
         let main = const_try!(AnyStress::partial_parse(parser));
         let mut alt = None;
 
         // If followed by a '/', parse the alt stress
         if let Some(b'/') = parser.peek_one() {
-            // FIXME(const-hack): Replace with `?`.
             alt = Some(const_try!(AnyStress::partial_parse(parser)));
         }
 
         // Construct the dual stress and return
-        return Ok(AnyDualStress::new(main, alt));
+        Ok(AnyDualStress::new(main, alt))
     }
 }
 

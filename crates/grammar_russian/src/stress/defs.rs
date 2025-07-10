@@ -1,7 +1,5 @@
 use thiserror::Error;
 
-use crate::util::enum_conversion;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AnyStress {
     /// Stress schema `a`. The stress is always on the stem. Used by all inflectable words.
@@ -52,9 +50,6 @@ pub enum AnyStress {
     /// - Nouns: singular instrumental, and plural nominative - stress on stem, all other - stress on ending.
     Fpp,
 }
-#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
-#[error("words can only have stresses a-f, a′-f′, c″ and f″")]
-pub struct AnyStressError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NounStress {
@@ -79,15 +74,15 @@ pub enum NounStress {
     /// Stress schema `f″` (`f` with double prime). Singular instrumental, and plural nominative - stress on stem, all other - stress on ending.
     Fpp,
 }
-enum_conversion! {
-    impl From<NounStress, Error = NounStressError> for AnyStress {
-        A, B, C, D, E, F, Bp, Dp, Fp, Fpp,
-    }
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PronounStress {
+    /// Stress schema `a`. Stress is always on the stem.
+    A,
+    /// Stress schema `b`. Stress is always on the ending.
+    B,
+    /// Stress schema `f`. Plural nominative - stress on stem, all other - stress on ending.
+    F,
 }
-#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
-#[error("nouns can only have stresses a, b, c, d, e, f, b′, d′, f′ and f″")]
-pub struct NounStressError;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AdjectiveFullStress {
     /// Stress schema `a`. Stress is always on the stem.
@@ -95,15 +90,6 @@ pub enum AdjectiveFullStress {
     /// Stress schema `b`. Stress is always on the ending.
     B,
 }
-enum_conversion! {
-    impl From<AdjectiveFullStress, Error = AdjectiveFullStressError> for AnyStress {
-        A, B,
-    }
-}
-#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
-#[error("adjectives (full form) can only have stresses a and b")]
-pub struct AdjectiveFullStressError;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AdjectiveShortStress {
     /// Stress schema `a`. Stress is always on the stem.
@@ -121,33 +107,6 @@ pub enum AdjectiveShortStress {
     /// Stress schema `c″` (`c` with double prime). Feminine - stress on ending, all other - both??? (resolved as on ending).
     Cpp,
 }
-enum_conversion! {
-    impl From<AdjectiveShortStress, Error = AdjectiveShortStressError> for AnyStress {
-        A, B, C, Ap, Bp, Cp, Cpp,
-    }
-}
-#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
-#[error("adjectives (short form) can only have stresses a, b, c, a′, b′, c′ and c″")]
-pub struct AdjectiveShortStressError;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PronounStress {
-    /// Stress schema `a`. Stress is always on the stem.
-    A,
-    /// Stress schema `b`. Stress is always on the ending.
-    B,
-    /// Stress schema `f`. Plural nominative - stress on stem, all other - stress on ending.
-    F,
-}
-enum_conversion! {
-    impl From<PronounStress, Error = PronounStressError> for AnyStress {
-        A, B, F,
-    }
-}
-#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
-#[error("pronouns can only have stresses a, b and f")]
-pub struct PronounStressError;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VerbPresentStress {
     /// Stress schema `a`. Stress is always on the stem.
@@ -159,15 +118,6 @@ pub enum VerbPresentStress {
     /// Stress schema `c′` (`c` with single prime). First person, imperative, and plural - stress on ending, all other - stress on stem.
     Cp,
 }
-enum_conversion! {
-    impl From<VerbPresentStress, Error = VerbPresentStressError> for AnyStress {
-        A, B, C, Cp,
-    }
-}
-#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
-#[error("verbs (present tense) can only have stresses a, b, c and c′")]
-pub struct VerbPresentStressError;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum VerbPastStress {
     /// Stress schema `a`. Stress is always on the stem.
@@ -181,11 +131,25 @@ pub enum VerbPastStress {
     /// Stress schema `c″` (`c` with double prime). Reflexive only. Masculine - stress on stem, feminine - stress on ending, neuter and plural - TODO: both???.
     Cpp,
 }
-enum_conversion! {
-    impl From<VerbPastStress, Error = VerbPastStressError> for AnyStress {
-        A, B, C, Cp, Cpp,
-    }
-}
+
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("words can only have stresses a-f, a′-f′, c″ and f″")]
+pub struct AnyStressError;
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("nouns can only have stresses a, b, c, d, e, f, b′, d′, f′ and f″")]
+pub struct NounStressError;
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("pronouns can only have stresses a, b and f")]
+pub struct PronounStressError;
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("adjectives (full form) can only have stresses a and b")]
+pub struct AdjectiveFullStressError;
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("adjectives (short form) can only have stresses a, b, c, a′, b′, c′ and c″")]
+pub struct AdjectiveShortStressError;
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("verbs (present tense) can only have stresses a, b, c and c′")]
+pub struct VerbPresentStressError;
 #[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
 #[error("verbs (past tense) can only have stresses a, b, c, c′ and c″")]
 pub struct VerbPastStressError;

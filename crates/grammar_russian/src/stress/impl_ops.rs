@@ -1,6 +1,5 @@
-use crate::{categories::*, declension::DeclInfo, util::const_traits::*};
-
 use super::defs::*;
+use crate::{categories::*, declension::DeclInfo, util::*};
 
 impl AnyStress {
     pub const fn has_any_primes(self) -> bool {
@@ -94,11 +93,7 @@ impl VerbStress {
 
 impl AnyDualStress {
     pub const fn normalize_adj(self) -> (AnyStress, AnyStress) {
-        if let Some(alt) = self.alt {
-            return (self.main, alt);
-        } else {
-            return (self.main.unprime(), self.main);
-        }
+        if let Some(alt) = self.alt { (self.main, alt) } else { (self.main.unprime(), self.main) }
     }
     pub const fn normalize_verb(self) -> (AnyStress, AnyStress) {
         (self.main, if let Some(alt) = self.alt { alt } else { AnyStress::A })
@@ -127,6 +122,19 @@ impl NounStress {
                 Number::Singular => matches!(info.case(), Case::Instrumental),
                 Number::Plural => info.case().is_nom_or_acc_inan(info),
             },
+        }
+    }
+    pub const fn is_ending_stressed(self, info: DeclInfo) -> bool {
+        !self.is_stem_stressed(info)
+    }
+}
+
+impl PronounStress {
+    pub const fn is_stem_stressed(self, info: DeclInfo) -> bool {
+        match self {
+            PronounStress::A => true,
+            PronounStress::B => false,
+            PronounStress::F => info.is_plural() && info.case().is_nom_or_acc_inan(info),
         }
     }
     pub const fn is_ending_stressed(self, info: DeclInfo) -> bool {
@@ -165,19 +173,6 @@ impl AdjectiveShortStress {
     }
     pub const fn is_ending_stressed(self, gender: Gender, number: Number) -> bool {
         !self.is_stem_stressed(gender, number)
-    }
-}
-
-impl PronounStress {
-    pub const fn is_stem_stressed(self, info: DeclInfo) -> bool {
-        match self {
-            PronounStress::A => true,
-            PronounStress::B => false,
-            PronounStress::F => info.is_plural() && info.case().is_nom_or_acc_inan(info),
-        }
-    }
-    pub const fn is_ending_stressed(self, info: DeclInfo) -> bool {
-        !self.is_stem_stressed(info)
     }
 }
 
