@@ -31,6 +31,22 @@ impl<'a> UnsafeParser<'a> {
         if !self.finished() { Some(self.start) } else { None }
     }
 
+    pub const fn read<const N: usize>(&mut self) -> Option<&'a [u8; N]> {
+        if let Some(chunk) = self.remaining().first_chunk::<N>() {
+            self.forward(N);
+            return Some(chunk);
+        }
+        None
+    }
+    pub const fn read_one(&mut self) -> Option<&'a u8> {
+        if !self.finished() {
+            let read = self.start;
+            self.forward(1);
+            return Some(read);
+        }
+        None
+    }
+
     pub const fn skip_bytes(&mut self, bytes: &[u8]) -> bool {
         if self.remaining_len() >= bytes.len() {
             let peeked = unsafe { std::slice::from_raw_parts(self.start, bytes.len()) };

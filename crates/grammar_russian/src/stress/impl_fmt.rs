@@ -1,6 +1,4 @@
-use crate::util::const_traits::*;
-
-use super::defs::*;
+use crate::{util::*, stress::*};
 
 impl AnyStress {
     pub const fn fmt_to(self, dst: &mut [u8; 4]) -> &mut str {
@@ -77,21 +75,12 @@ pub enum ParseStressError {
     InvalidType,
 }
 
-impl AnyStress {
-    pub const fn from_str(text: &str) -> Result<Self, ParseStressError> {
-        match Self::from_str_partial(text) {
-            Ok((stress, len)) => {
-                // Return Ok only if the entire string was parsed
-                if len as usize == text.len() { Ok(stress) } else { Err(ParseStressError::Invalid) }
-            },
-            Err(err) => Err(err),
-        }
-    }
-    pub const fn from_str_partial(text: &str) -> Result<(Self, u8), ParseStressError> {
-        let text = text.as_bytes();
+impl const PartialParse for AnyStress {
+    type Err = ParseStressError;
 
+    fn partial_parse(parser: &mut UnsafeParser) -> Result<Self, Self::Err> {
         // First, parse the latin letter
-        let letter = match text.first() {
+        let letter = match parser.read_one() {
             Some(b'a') => Self::A,
             Some(b'b') => Self::B,
             Some(b'c') => Self::C,
@@ -102,7 +91,7 @@ impl AnyStress {
         };
 
         // Then parse prime indicators
-        let (primes, parsed_len) = match text {
+        let (primes, len) = match parser.remaining() {
             [_, 0xE2, 0x80, 0xB2, ..] => (1, 4), // ′ (UTF-8 single prime)
             [_, 0xE2, 0x80, 0xB3, ..] => (2, 4), // ″ (UTF-8 double prime)
             [_, b'\'', b'\'', ..] => (2, 3),     // '' (double apostrophe)
@@ -110,77 +99,54 @@ impl AnyStress {
             [_, b'"', ..] => (2, 2),             // " (quotation)
             _ => (0u8, 1u8),                     // no primes
         };
+        parser.forward(len as usize);
 
-        // Apply appropriate primes, and return
-        Ok((
-            match primes {
-                0 => letter,
-                // FIXME(const-hack): Replace with `.ok_or(Err(…))`.
-                1 => match letter.add_single_prime() {
-                    Some(stress) => stress,
-                    None => return Err(ParseStressError::InvalidPrime),
-                },
-                // FIXME(const-hack): Replace with `.ok_or(Err(…))`.
-                2 => match letter.add_double_prime() {
-                    Some(stress) => stress,
-                    None => return Err(ParseStressError::InvalidPrime),
-                },
-                _ => unreachable!(),
+        Ok(match primes {
+            0 => letter,
+            // FIXME(const-hack): Replace with `.ok_or(Err(…))`.
+            1 => match letter.add_single_prime() {
+                Some(stress) => stress,
+                None => return Err(ParseStressError::InvalidPrime),
             },
-            parsed_len,
-        ))
+            // FIXME(const-hack): Replace with `.ok_or(Err(…))`.
+            2 => match letter.add_double_prime() {
+                Some(stress) => stress,
+                None => return Err(ParseStressError::InvalidPrime),
+            },
+            _ => unreachable!(),
+        })
     }
 }
-impl AnyDualStress {
-    pub const fn from_str(text: &str) -> Result<Self, ParseStressError> {
-        match Self::from_str_partial(text) {
-            Ok((stress, len)) => {
-                // Return Ok only if the entire string was parsed
-                if len as usize == text.len() { Ok(stress) } else { Err(ParseStressError::Invalid) }
-            },
-            Err(err) => Err(err),
-        }
-    }
-    pub const fn from_str_partial(text: &str) -> Result<(Self, u8), ParseStressError> {
-        let (main, mut len);
-        let mut alt = None;
+impl const PartialParse for AnyDualStress {
+    type Err = ParseStressError;
 
+    fn partial_parse(parser: &mut UnsafeParser) -> Result<Self, Self::Err> {
         // Parse the main stress
         // FIXME(const-hack): Replace with `?`.
-        (main, len) = const_try!(AnyStress::from_str_partial(text));
+        let main = const_try!(AnyStress::partial_parse(parser));
+        let mut alt = None;
 
         // If followed by a '/', parse the alt stress
-        // FIXME(const-hack): Replace with `.get()`.
-        if matches!(_get(text, len as usize), Some(b'/')) {
-            len += 1;
-            let (_, text) = text.split_at(len as usize);
-
-            // Parse the alt stress
+        if let Some(b'/') = parser.peek_one() {
             // FIXME(const-hack): Replace with `?`.
-            let (stress, stress_len) = const_try!(AnyStress::from_str_partial(text));
-            alt = Some(stress);
-            len += stress_len;
+            alt = Some(const_try!(AnyStress::partial_parse(parser)));
         }
 
         // Construct the dual stress and return
-        return Ok((AnyDualStress::new(main, alt), len));
-
-        const fn _get(text: &str, pos: usize) -> Option<u8> {
-            if pos < text.len() { Some(unsafe { *text.as_ptr().add(pos) }) } else { None }
-        }
+        return Ok(AnyDualStress::new(main, alt));
     }
 }
 
 impl std::str::FromStr for AnyStress {
     type Err = ParseStressError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s)
+        Self::from_str_or(s, Self::Err::Invalid)
     }
 }
 impl std::str::FromStr for AnyDualStress {
     type Err = ParseStressError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str(s)
+        Self::from_str_or(s, Self::Err::Invalid)
     }
 }
 
