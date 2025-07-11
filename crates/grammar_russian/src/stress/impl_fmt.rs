@@ -119,7 +119,7 @@ impl const PartialParse for AnyDualStress {
         let mut alt = None;
 
         // If followed by a '/', parse the alt stress
-        if let Some(b'/') = parser.peek_one() {
+        if parser.skip('/') {
             alt = Some(const_try!(AnyStress::partial_parse(parser)));
         }
 
