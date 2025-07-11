@@ -1,8 +1,10 @@
 #![feature(const_trait_impl)]
+#![feature(core_intrinsics)]
+#![feature(const_eval_select)]
 #![feature(formatting_options)]
 #![cfg_attr(test, feature(test))]
 // Fix issues with alphabet::letters::*
-#![allow(confusable_idents, non_upper_case_globals)]
+#![allow(confusable_idents, non_upper_case_globals, internal_features)]
 
 mod util;
 

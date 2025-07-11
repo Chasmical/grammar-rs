@@ -1,4 +1,4 @@
-use crate::{categories::*, declension::*};
+use crate::{categories::*, declension::*, util::slice_find};
 
 // All endings of nouns, adjectives and pronouns in one 55-char span
 const ENDINGS: &[u8] = "оегоговыеейёмойёйамийаямиемуююахяяхыйыхымихомуимиевёвью".as_bytes();
@@ -41,10 +41,10 @@ const NOUN_LOOKUP: [(u8, u8); 288] = [
     /* acc pl n    */ acc, acc, acc, acc, acc, acc, acc, acc,
     /* acc pl fem  */ acc, acc, acc, acc, acc, acc, acc, acc,
 
-    //    stem types: 1,   2,     3,   4,     5,     6,     7,     8
-    /* ins sg masc */ ом,  ем_ём, ом,  ем_ом, ем_ом, ем_ём, ем_ём, ем_ём,
-    /* ins sg n    */ ом,  ем_ём, ом,  ем_ом, ем_ом, ем_ём, ем_ём, ом,
-    /* ins sg fem  */ ой,  ей_ёй, ой,  ей_ой, ей_ой, ей_ёй, ей_ёй, ью,
+    //    stem types: 1,  2,     3,  4,     5,     6,     7,     8
+    /* ins sg masc */ ом, ем_ём, ом, ем_ом, ем_ом, ем_ём, ем_ём, ем_ём,
+    /* ins sg n    */ ом, ем_ём, ом, ем_ом, ем_ом, ем_ём, ем_ём, ом,
+    /* ins sg fem  */ ой, ей_ёй, ой, ей_ой, ей_ой, ей_ёй, ей_ёй, ью,
     //    stem types: 1,   2,   3,   4,   5,   6,   7,   8
     /* ins pl masc */ ами, ями, ами, ами, ами, ями, ями, ями,
     /* ins pl n    */ ами, ями, ами, ами, ами, ями, ями, ами,
@@ -146,7 +146,7 @@ const PRO_LOOKUP: [(u8, u8); 168] = [
 
 macro_rules! define_endings {
     ($($ident:ident)*) => ($(
-        const $ident: (u8, u8) = find_ending(stringify!($ident));
+        const $ident: (u8, u8) = find_ending_indices(stringify!($ident));
     )*);
     ($($x:ident($a:ident, $b:ident)),* $(,)?) => ($(
         const $x: (u8, u8) = ($a.0, $b.0);
@@ -172,33 +172,12 @@ define_endings! {
 const acc: (u8, u8) = (0x00, 0x00);
 const null: (u8, u8) = (0x01, 0x01);
 
-const fn find_ending(s: &str) -> (u8, u8) {
-    // FIXME(const-hack): Replace with `ENDINGS.find(s)`.
-    let i = find(ENDINGS, s.as_bytes()).unwrap();
+const fn find_ending_indices(s: &str) -> (u8, u8) {
+    let i = slice_find(ENDINGS, s.as_bytes()).unwrap();
     let x = (((s.len() >> 1) << 6) | (i >> 1)) as u8;
     return (x, x);
-
-    const fn find(endings: &[u8], s: &[u8]) -> Option<usize> {
-        let mut i = 0;
-        while i <= endings.len() - s.len() {
-            let mut j = 0;
-            let mut success = true;
-            while j < s.len() {
-                if endings[i + j] != s[j] {
-                    success = false;
-                    break;
-                }
-                j += 1;
-            }
-            if success {
-                return Some(i);
-            }
-            i += 1;
-        }
-        None
-    }
 }
-const fn get_ending(index: u8) -> &'static str {
+const fn get_ending_by_index(index: u8) -> &'static str {
     unsafe {
         let index = index as usize;
         let ptr = ENDINGS.as_ptr().add((index & 0x3F) << 1);
@@ -217,7 +196,7 @@ impl NounDeclension {
         }
 
         let stressed = un_str == str || self.stress.is_ending_stressed(info);
-        get_ending(if stressed { str } else { un_str })
+        get_ending_by_index(if stressed { str } else { un_str })
     }
     const fn lookup(self, info: DeclInfo, case: Case) -> (u8, u8) {
         let mut x = case as usize;
@@ -238,7 +217,7 @@ impl AdjectiveDeclension {
         }
 
         let stressed = un_str == str || self.stress.full.is_ending_stressed();
-        get_ending(if stressed { str } else { un_str })
+        get_ending_by_index(if stressed { str } else { un_str })
     }
     const fn lookup(self, info: DeclInfo, case: Case) -> (u8, u8) {
         let mut x = case as usize;
@@ -258,7 +237,7 @@ impl PronounDeclension {
         }
 
         let stressed = un_str == str || self.stress.is_ending_stressed(info);
-        get_ending(if stressed { str } else { un_str })
+        get_ending_by_index(if stressed { str } else { un_str })
     }
     const fn lookup(self, info: DeclInfo, case: Case) -> (u8, u8) {
         let mut x = case as usize;

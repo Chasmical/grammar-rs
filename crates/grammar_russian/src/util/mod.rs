@@ -5,6 +5,8 @@ pub(crate) use unsafe_parser::*;
 
 pub(crate) mod const_traits;
 pub(crate) use const_traits::*;
+pub(crate) mod const_utils;
+pub(crate) use const_utils::*;
 
 macro_rules! enum_conversion {
     (

@@ -19,12 +19,6 @@ pub trait HasAnimacy {
     fn is_inanimate(&self) -> bool {
         matches!(self.animacy(), Animacy::Inanimate)
     }
-    fn acc_case(&self) -> Case {
-        match self.animacy() {
-            Animacy::Inanimate => Case::Nominative,
-            Animacy::Animate => Case::Genitive,
-        }
-    }
 }
 
 // Animacy provides itself
@@ -37,6 +31,13 @@ impl const HasAnimacy for Animacy {
 impl Animacy {
     pub const INAN: Self = Self::Inanimate;
     pub const AN: Self = Self::Animate;
+
+    pub const fn acc_case(self) -> Case {
+        match self {
+            Animacy::Inanimate => Case::Nominative,
+            Animacy::Animate => Case::Genitive,
+        }
+    }
 }
 
 impl Animacy {

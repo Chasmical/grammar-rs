@@ -1,3 +1,5 @@
+use super::slice_eq;
+
 pub(crate) struct UnsafeParser<'a> {
     start: &'a u8,
     end: &'a u8,
@@ -48,28 +50,15 @@ impl<'a> UnsafeParser<'a> {
     }
 
     pub const fn skip_bytes(&mut self, bytes: &[u8]) -> bool {
+        // FIXME(const-hack): Replace with `self.remaining().starts_with(bytes)`.
         if self.remaining_len() >= bytes.len() {
             let peeked = unsafe { std::slice::from_raw_parts(self.start, bytes.len()) };
-            if eq_slices(peeked, bytes) {
+            if slice_eq(peeked, bytes) {
                 self.forward(bytes.len());
                 return true;
             }
         }
         return false;
-
-        const fn eq_slices(left: &[u8], right: &[u8]) -> bool {
-            if left.len() != right.len() {
-                return false;
-            }
-            let mut idx = 0;
-            while idx < left.len() {
-                if left[idx] != right[idx] {
-                    return false;
-                }
-                idx += 1;
-            }
-            true
-        }
     }
     pub const fn skip_str(&mut self, s: &str) -> bool {
         self.skip_bytes(s.as_bytes())
