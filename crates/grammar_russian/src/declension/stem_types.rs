@@ -110,6 +110,3 @@ define_from_impl! {
         Type5 => 5, Type6 => 6, Type7 => 7,
     }
 }
-
-// TODO: From<Any> for Noun (full mapping)
-// TODO: TryFrom for noun -> adjective, etc.

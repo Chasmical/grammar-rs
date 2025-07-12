@@ -9,17 +9,17 @@ use crate::util::*;
 // ├———————┼——————┼——————┼——————┼——————┼——————┼——————┼——————╫——————┼——————┼——————┤
 // │ Noun  │  ██  │ ———— │      │      │      │      │      ║  ██  │      │      │
 // ├———————┼——————┼——————┼——————┼——————┼——————┼——————┼——————╫——————┼——————┼——————┤
-// │ AdjF  │  ██  │      │ ———— │      │      │      │      ║  ██  │  ██  │      │
+// │ AdjF  │  ██  │      │ ———— │      │      │      │      ║  ██  │      │      │
 // ├———————┼——————┼——————┼——————┼——————┼——————┼——————┼——————╫——————┼——————┼——————┤
-// │ AdjS  │  ██  │      │      │ ———— │      │      │      ║  ██  │  []  │      │
+// │ AdjS  │  ██  │      │      │ ———— │      │      │      ║  ██  │      │      │
 // ├———————┼——————┼——————┼——————┼——————┼——————┼——————┼——————╫——————┼——————┼——————┤
 // │ Pro   │  ██  │      │      │      │ ———— │      │      ║  ██  │      │      │
 // ├———————┼——————┼——————┼——————┼——————┼——————┼——————┼——————╫——————┼——————┼——————┤
-// │ VerbF │  ██  │      │      │      │      │ ———— │      ║  ██  │      │  ██  │
+// │ VerbF │  ██  │      │      │      │      │ ———— │      ║  ██  │      │      │
 // ├———————┼——————┼——————┼——————┼——————┼——————┼——————┼——————╫——————┼——————┼——————┤
-// │ VerbP │  ██  │      │      │      │      │      │ ———— ║  ██  │      │  []  │
+// │ VerbP │  ██  │      │      │      │      │      │ ———— ║  ██  │      │      │
 // ╞═══════╪══════╪══════╪══════╪══════╪══════╪══════╪══════╬══════╪══════╪══════╡
-// │ ANY   │      │      │      │      │      │      │      ║ ———— │  []  │  []  │
+// │ ANY   │  []  │  []  │  []  │  []  │  []  │  []  │  []  ║ ———— │  []  │  []  │
 // ├———————┼——————┼——————┼——————┼——————┼——————┼——————┼——————╫——————┼——————┼——————┤
 // │ ADJ   │      │      │      │      │      │      │      ║  ██  │ ———— │      │
 // ├———————┼——————┼——————┼——————┼——————┼——————┼——————┼——————╫——————┼——————┼——————┤
@@ -27,6 +27,7 @@ use crate::util::*;
 // └———————┴——————┴——————┴——————┴——————┴——————┴——————┴——————╨——————┴——————┴——————┘
 //                                                     ██ — From   [] — TryFrom
 
+// Convert simple stresses to AnyStress, and vice versa
 enum_conversion!(NounStress => AnyStress [<= NounStressError] {
     A, B, C, D, E, F, Bp, Dp, Fp, Fpp,
 });
@@ -57,7 +58,6 @@ impl<T: ~const _Into<AnyStress>> const _From<T> for AnyDualStress {
         Self::new(value._into(), None)
     }
 }
-
 // Convert AdjectiveStress and VerbStress into AnyDualStress
 impl_const_From!(<AdjectiveStress> for AnyDualStress {
     fn from(value: AdjectiveStress) -> Self {
@@ -70,54 +70,51 @@ impl_const_From!(<VerbStress> for AnyDualStress {
     }
 });
 
-// Create AdjectiveStress from its components
-impl_const_From!(<AdjectiveFullStress> for AdjectiveStress {
-    fn from(value: AdjectiveFullStress) -> Self {
-        Self::new(value, AnyStress::_from(value)._try_into()._unwrap())
+// Try to convert main-only AnyDualStress into simple stresses
+impl_const_TryFrom!(<AnyDualStress> for AnyStress {
+    type Error = AnyStressError;
+    fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
+        if value.alt.is_none() { Ok(value.main) } else { Err(Self::Error {}) }
     }
 });
-impl_const_TryFrom!(<AdjectiveShortStress> for AdjectiveStress {
-    type Error = AdjectiveFullStressError;
-    fn try_from(value: AdjectiveShortStress) -> Result<Self, Self::Error> {
-        let full = AnyStress::_from(value).unprime()._try_into();
-        Ok(Self::new(const_try!(full), value))
+impl_const_TryFrom!(<AnyDualStress> for NounStress {
+    type Error = NounStressError;
+    fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
+        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
     }
 });
-impl_const_TryFrom!(<AnyStress> for AdjectiveStress {
+impl_const_TryFrom!(<AnyDualStress> for PronounStress {
+    type Error = PronounStressError;
+    fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
+        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
+    }
+});
+impl_const_TryFrom!(<AnyDualStress> for AdjectiveFullStress {
     type Error = AdjectiveFullStressError;
-    fn try_from(value: AnyStress) -> Result<Self, Self::Error> {
-        // FIXME(const-hack): Replace with `.map_or(Err(Self::Error {}), |x| x.try_into())`.
-        match AdjectiveShortStress::_try_from(value) {
-            Ok(x) => x._try_into(),
-            Err(_) => Err(Self::Error {}),
-        }
+    fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
+        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
+    }
+});
+impl_const_TryFrom!(<AnyDualStress> for AdjectiveShortStress {
+    type Error = AdjectiveShortStressError;
+    fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
+        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
+    }
+});
+impl_const_TryFrom!(<AnyDualStress> for VerbPresentStress {
+    type Error = VerbPresentStressError;
+    fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
+        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
+    }
+});
+impl_const_TryFrom!(<AnyDualStress> for VerbPastStress {
+    type Error = VerbPastStressError;
+    fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
+        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
     }
 });
 
-// Create VerbStress from its components
-impl_const_From!(<VerbPresentStress> for VerbStress {
-    fn from(value: VerbPresentStress) -> Self {
-        Self::new(value, VerbPastStress::A)
-    }
-});
-impl_const_TryFrom!(<VerbPastStress> for VerbStress {
-    type Error = VerbPresentStressError;
-    fn try_from(value: VerbPastStress) -> Result<Self, Self::Error> {
-        Ok(Self::new(const_try!(AnyStress::_from(value)._try_into()), value))
-    }
-});
-impl_const_TryFrom!(<AnyStress> for VerbStress {
-    type Error = VerbPresentStressError;
-    fn try_from(value: AnyStress) -> Result<Self, Self::Error> {
-        // FIXME(const-hack): Replace with `.map_or(Err(Self::Error {}), |x| x.try_into())`.
-        match VerbPastStress::_try_from(value) {
-            Ok(x) => x._try_into(),
-            Err(_) => Err(Self::Error {}),
-        }
-    }
-});
-
-// Convert AnyDualStress to AdjectiveStress and VerbStress
+// Try to convert AnyDualStress to AdjectiveStress and VerbStress
 impl_const_TryFrom!(<AnyDualStress> for AdjectiveStress {
     type Error = AdjectiveStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {

@@ -43,4 +43,12 @@ macro_rules! enum_conversion {
     );
 }
 
-pub(crate) use enum_conversion;
+macro_rules! utf8_bytes {
+    ($ch:literal) => {{
+        let mut buf = [0; $ch.len_utf8()];
+        $ch.encode_utf8(&mut buf);
+        buf
+    }};
+}
+
+pub(crate) use {enum_conversion, utf8_bytes};

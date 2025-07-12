@@ -1,6 +1,5 @@
-use std::fmt::Display;
-
 use crate::{InflectionBuffer, categories::*, declension::*, letters, stress::*};
+use std::fmt::Display;
 
 pub struct Noun<'a> {
     pub stem: &'a str,

@@ -1,4 +1,5 @@
 use super::slice_eq;
+use crate::Letter;
 
 pub(crate) struct UnsafeParser<'a> {
     start: &'a u8,
@@ -18,6 +19,9 @@ impl<'a> UnsafeParser<'a> {
     pub const fn remaining(&self) -> &'a [u8] {
         unsafe { std::slice::from_raw_parts(self.start, self.remaining_len()) }
     }
+    pub const fn remaining_letters(&self) -> &'a [Letter] {
+        Letter::from_bytes(self.remaining())
+    }
 
     pub const fn forward(&mut self, dist: usize) {
         self.start = unsafe { &*(self.start as *const u8).add(dist) };
@@ -28,6 +32,9 @@ impl<'a> UnsafeParser<'a> {
 
     pub const fn peek<const N: usize>(&self) -> Option<&'a [u8; N]> {
         self.remaining().first_chunk::<N>()
+    }
+    pub const fn peek_letters<const N: usize>(&self) -> Option<&'a [Letter; N]> {
+        self.remaining_letters().first_chunk::<N>()
     }
     pub const fn peek_one(&self) -> Option<&'a u8> {
         if !self.finished() { Some(self.start) } else { None }
@@ -69,8 +76,7 @@ impl<'a> UnsafeParser<'a> {
 }
 
 #[const_trait]
-pub trait PartialParse: Sized {
-    type Err;
+pub trait PartialParse: std::str::FromStr + Sized {
     fn partial_parse(parser: &mut UnsafeParser) -> Result<Self, Self::Err>;
 
     fn from_str_or(s: &str, default_err: Self::Err) -> Result<Self, Self::Err>

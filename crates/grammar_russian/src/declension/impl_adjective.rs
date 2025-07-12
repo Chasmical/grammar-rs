@@ -1,6 +1,5 @@
-use std::fmt::Display;
-
 use crate::{InflectionBuffer, declension::*};
+use std::fmt::Display;
 
 pub struct Adjective<'a> {
     pub stem: &'a str,
@@ -9,6 +8,7 @@ pub struct Adjective<'a> {
 }
 pub struct AdjectiveInfo {
     pub declension: Option<Declension>,
+    pub is_reflexive: bool,
 }
 
 impl<'a> Adjective<'a> {
@@ -23,6 +23,10 @@ impl<'a> Adjective<'a> {
                 Declension::Pronoun(decl) => decl.inflect(info, &mut buf),
                 Declension::Noun(_) => todo!(), // TODO
             };
+
+            if self.info.is_reflexive {
+                buf.append_to_ending("ся");
+            }
 
             buf.as_str().fmt(f)
         } else {

@@ -97,11 +97,12 @@ where Result<T, E>: Copy
     }
 }
 
-// FIXME(const-hack): Remove these when ? (and From<Err>) is constified.
+// FIXME(const-hack): Remove these when ? and From<Err> are constified.
 
 macro_rules! const_try {
     ($expr:expr) => (const_try!($expr, x => x));
-    ($expr:expr, $fn:path) => (const_try!($expr, x => $fn(x)));
+    ($expr:expr, $err_fn:path) => (const_try!($expr, x => $err_fn(x)));
+    ($expr:expr, $err_expr:expr) => (const_try!($expr, _x => $err_expr));
     ($expr:expr, $err:ident => $err_expr:expr) => ({
         match $expr {
             Ok(x) => x,

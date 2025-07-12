@@ -1,6 +1,5 @@
-use std::fmt::Display;
-
 use crate::{InflectionBuffer, declension::*};
+use std::fmt::Display;
 
 pub struct Pronoun<'a> {
     pub stem: &'a str,
