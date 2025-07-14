@@ -70,6 +70,23 @@ impl Letter {
     }
 }
 
+#[const_trait]
+pub trait LetterSliceExt {
+    fn as_bytes(&self) -> &[u8];
+    fn as_str(&self) -> &str;
+}
+impl const LetterSliceExt for [Letter] {
+    fn as_bytes(&self) -> &[u8] {
+        unsafe {
+            let ptr: *const u8 = std::mem::transmute(self.as_ptr());
+            std::slice::from_raw_parts(ptr, self.len() << 1)
+        }
+    }
+    fn as_str(&self) -> &str {
+        unsafe { std::str::from_utf8_unchecked(self.as_bytes()) }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

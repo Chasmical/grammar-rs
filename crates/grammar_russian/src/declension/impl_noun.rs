@@ -255,11 +255,11 @@ impl NounDeclension {
                 || matches!(last, letters::к | letters::г | letters::х)
                     && pre_last.is_some_and(|x| x.is_sibilant())
             {
-                buf.insert_between_two_last_stem_letters(letters::о);
+                buf.insert_between_last_two_stem_letters(letters::о);
                 return;
             }
 
-            buf.insert_between_two_last_stem_letters(
+            buf.insert_between_last_two_stem_letters(
                 if last != letters::ц && self.stress.is_ending_stressed(info) {
                     if pre_last.is_some_and(|x| x.is_hissing()) { letters::о } else { letters::ё }
                 } else {
