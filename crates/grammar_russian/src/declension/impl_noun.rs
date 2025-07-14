@@ -1,4 +1,4 @@
-use crate::{InflectionBuffer, categories::*, declension::*, letters, stress::*};
+use crate::{InflectionBuffer, Letter, categories::*, declension::*, letters, stress::*};
 use std::fmt::Display;
 
 pub struct Noun<'a> {
@@ -63,9 +63,9 @@ impl NounDeclension {
             self.apply_unique_alternation(info, buf);
         }
 
+        // Special case for stem type 8: replace 'я' with 'а' after hissing consonant in stem
         if self.stem_type == NounStemType::Type8
-            && let [.., last] = buf.stem()
-            && last.is_hissing()
+            && buf.stem().last().is_some_and(|x| x.is_hissing())
             && let [ya @ letters::я, ..] = buf.ending_mut()
         {
             *ya = letters::а;
@@ -74,18 +74,17 @@ impl NounDeclension {
         if self.flags.has_star() {
             self.apply_vowel_alternation(info, buf);
         }
-
         if self.flags.has_alternating_yo() {
-            todo!(); // TODO: yo alternation
+            self.apply_ye_yo_alternation(info, buf);
         }
     }
 
     pub fn apply_unique_alternation(self, info: DeclInfo, buf: &mut InflectionBuffer) {
-        use letters as ru;
+        use letters as lt;
 
         match buf.stem_mut() {
-            // -ин (-[ая]нин)
-            [.., ru::и, ru::н] => {
+            // -ин (боярин, крестьянин, землянин, господин)
+            [.., lt::и, lt::н] => {
                 if info.is_plural() {
                     // Shrink by 4 bytes (2 chars), removing 'ин'
                     buf.shrink_stem_by(4);
@@ -101,15 +100,15 @@ impl NounDeclension {
                     }
                 }
             },
-            // -[оё]нок
-            [.., yo @ (ru::о | ru::ё), n @ ru::н, ru::о, ru::к] => {
+            // -[оё]нок (утёнок, ребёнок, опёнок, мышонок, зайчонок)
+            [.., yo @ (lt::о | lt::ё), n @ lt::н, lt::о, lt::к] => {
                 if info.is_plural() {
-                    // Transform '-[оё]нок' into '-[ая]та'
+                    // Transform '-[оё]нок' into '-[ая]т'
 
                     // Replace 'о' with 'а', and 'ё' with 'я'
-                    *yo = if matches!(*yo, ru::о) { ru::а } else { ru::я };
+                    *yo = if matches!(*yo, lt::о) { lt::а } else { lt::я };
                     // Set the stem char after '[ая]' to 'т'
-                    *n = ru::т;
+                    *n = lt::т;
                     // Shrink by 4 bytes (2 chars), removing 'ок'
                     buf.shrink_stem_by(4);
 
@@ -124,15 +123,15 @@ impl NounDeclension {
                     }
                 }
             },
-            // -ок
-            [.., preceding, o @ ru::о, k @ ru::к] => {
+            // -ок (щенок, внучок)
+            [.., preceding, o @ lt::о, k @ lt::к] => {
                 if info.is_plural() {
                     // Transform '-ок' into '-[ая]т'
 
                     // If preceded by a sibilant, replace 'о' with 'а'; otherwise, with 'я'
-                    *o = if preceding.is_sibilant() { ru::а } else { ru::я };
+                    *o = if preceding.is_sibilant() { lt::а } else { lt::я };
                     // Set the last stem char to 'т'
-                    *k = ru::т;
+                    *k = lt::т;
 
                     // Nominative - ending 'а', genitive - ending '', other - no changes
                     if let Some(is_nominative) = info.case.acc_is_nom(info) {
@@ -145,15 +144,15 @@ impl NounDeclension {
                     }
                 }
             },
-            // -[оё]ночек
-            [.., yo @ (ru::о | ru::ё), n @ ru::н, o @ ru::о, ru::ч, ru::е, ru::к] => {
+            // -[оё]ночек (телёночек, котёночек, мышоночек)
+            [.., yo @ (lt::о | lt::ё), n @ lt::н, o @ lt::о, lt::ч, lt::е, lt::к] => {
                 if info.is_plural() {
-                    // Transform '-[оё]ночек' into '-[ая]тки'
+                    // Transform '-[оё]ночек' into '-[ая]тк'
 
                     // Replace 'о' with 'а', and 'ё' with 'я'
-                    *yo = if matches!(*yo, ru::о) { ru::а } else { ru::я };
-                    // Set the stem chars after '[оё]' to 'тк'
-                    (*n, *o) = (ru::т, ru::к);
+                    *yo = if matches!(*yo, lt::о) { lt::а } else { lt::я };
+                    // Set the stem chars after '[ая]' to 'тк'
+                    (*n, *o) = (lt::т, lt::к);
                     // Shrink by 6 bytes (3 chars), removing 'чек'
                     buf.shrink_stem_by(6);
                 } else {
@@ -163,23 +162,40 @@ impl NounDeclension {
                     }
                 }
             },
-            // -мя
-            [.., ru::м] if matches!(info.gender, Gender::Neuter) => {
-                if info.is_plural() || !info.case.is_nom_or_acc_inan(info) {
-                    let use_yo = self.flags.has_alternating_yo()
-                        && info.is_plural()
+            // -очек (щеночек, внучочек)
+            [.., preceding, o @ lt::о, ch @ lt::ч, ye @ lt::е, lt::к] => {
+                if info.is_plural() {
+                    // Transform '-очек' into '-[ая]тк'
+
+                    // If preceded by a sibilant, replace 'о' with 'а'; otherwise, with 'я'
+                    *o = if preceding.is_sibilant() { lt::а } else { lt::я };
+                    // Set the stem chars after '[ая]' to 'тк'
+                    (*ch, *ye) = (lt::т, lt::к);
+                    // Shrink by 2 bytes (1 char), removing 'к'
+                    buf.shrink_stem_by(2);
+                } else {
+                    // Remove the last vowel for non-nominative cases ('е', pre-last char)
+                    if !info.case.is_nom_or_acc_inan(info) {
+                        buf.remove_from_stem((buf.stem_len - 4)..(buf.stem_len - 2));
+                    }
+                }
+            },
+            // -м(я) (время, знамя, пламя, имя)
+            [.., lt::м] if matches!(info.gender, Gender::Neuter) => {
+                if info.is_plural() && !info.case.is_nom_or_acc_inan(info) {
+                    // The е/ё alternation is handled here, instead of in apply_ye_yo_alternation()
+                    let use_yo = info.is_plural()
+                        && self.flags.has_alternating_yo()
                         && info.case.is_gen_or_acc_an(info);
 
+                    // Append '[её]н' to the stem
                     buf.append_to_stem(if use_yo { "ён" } else { "ен" });
                 }
-                if info.is_singular() {
-                    buf.replace_ending(match info.case {
-                        Case::Nominative => "я",
-                        Case::Genitive | Case::Dative | Case::Prepositional => "и",
-                        #[rustfmt::skip]
-                        Case::Accusative => if info.is_animate() { "и" } else { "я" },
-                        Case::Instrumental => "ем",
-                    });
+                // Replace nominative ending 'ь' with 'я'
+                if info.is_singular()
+                    && let [ending @ letters::ь] = buf.ending_mut()
+                {
+                    *ending = letters::я;
                 }
             },
             _ => {
@@ -288,6 +304,57 @@ impl NounDeclension {
                     letters::е
                 },
             );
+        }
+    }
+
+    pub fn apply_ye_yo_alternation(self, info: DeclInfo, buf: &mut InflectionBuffer) {
+        // The е/ё alternation is handled in apply_unique_alternation()
+        if self.flags.has_circle() {
+            return;
+        }
+
+        // If there's a 'ё' in the stem, check if it keeps its stress
+        if let Some(yo) = buf.stem_mut().iter_mut().find(|x| matches!(**x, letters::ё)) {
+            // SAFETY: yo is not modified until right before return
+            let yo: &mut Letter = unsafe { std::mem::transmute(yo) };
+
+            // If stress falls on the ending, unstress the 'ё' in stem to just 'е'
+            if self.stress.is_ending_stressed(info) && buf.ending().iter().any(|x| x.is_vowel()) {
+                *yo = letters::е;
+            }
+        } else {
+            let mut search_stem = buf.stem_mut();
+
+            // If there was vowel alternation, ignore the last two letters that may have been affected by it
+            if self.flags.has_star()
+                && let [new_search_stem @ .., _, _] = search_stem
+            {
+                search_stem = new_search_stem;
+            }
+
+            // Find the LAST unstressed 'е' in stem
+            let Some(ye) = search_stem.iter_mut().rfind(|x| matches!(**x, letters::е)) else {
+                unimplemented!("е/ё not found in е/ё alternation")
+            };
+            // SAFETY: ye is not modified until right before return
+            let ye: &mut Letter = unsafe { std::mem::transmute(ye) };
+
+            // If the ending doesn't have any vowels (can't receive stress), stress 'е' in stem into 'ё'
+            if !buf.ending().iter().any(|x| x.is_vowel()) {
+                *ye = letters::ё;
+            } else if self.stress.is_stem_stressed(info) {
+                // Special case for f/f′/f″: 'е' in stem can only receive stress in first vowel position
+                // E.g. exceptions: железа (1f, ё) - же́лезы, середа (1f′, ё) - се́реды
+                if matches!(self.stress, NounStress::F | NounStress::Fp | NounStress::Fpp) {
+                    if buf.stem().iter().find(|x| x.is_vowel()).is_some_and(|x| std::ptr::eq(ye, x))
+                    {
+                        *ye = letters::ё;
+                    }
+                } else {
+                    // Otherwise, 'е' is always stressed into 'ё'
+                    *ye = letters::ё;
+                }
+            }
         }
     }
 }
