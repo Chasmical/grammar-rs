@@ -20,7 +20,7 @@ impl<'a> Pronoun<'a> {
             match decl {
                 Declension::Pronoun(decl) => decl.inflect(info, &mut buf),
                 Declension::Adjective(decl) => decl.inflect(info, &mut buf),
-                Declension::Noun(_) => todo!(), // TODO
+                Declension::Noun(_) => unimplemented!("Pronouns don't decline by noun declension"),
             };
 
             buf.as_str().fmt(f)

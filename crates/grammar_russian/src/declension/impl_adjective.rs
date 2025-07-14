@@ -21,7 +21,9 @@ impl<'a> Adjective<'a> {
             match decl {
                 Declension::Adjective(decl) => decl.inflect(info, &mut buf),
                 Declension::Pronoun(decl) => decl.inflect(info, &mut buf),
-                Declension::Noun(_) => todo!(), // TODO
+                Declension::Noun(_) => {
+                    unimplemented!("Adjectives don't decline by noun declension")
+                },
             };
 
             if self.info.is_reflexive {
