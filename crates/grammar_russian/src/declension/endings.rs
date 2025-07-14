@@ -173,9 +173,9 @@ const acc: (u8, u8) = (0x00, 0x00);
 const null: (u8, u8) = (0x01, 0x01);
 
 const fn find_ending_indices(s: &str) -> (u8, u8) {
-    let i = slice_find(ENDINGS, s.as_bytes()).unwrap();
-    let x = (((s.len() >> 1) << 6) | (i >> 1)) as u8;
-    return (x, x);
+    let start = slice_find(ENDINGS, s.as_bytes()).unwrap();
+    let encoded = (((s.len() >> 1) << 6) | (start >> 1)) as u8;
+    (encoded, encoded)
 }
 const fn get_ending_by_index(index: u8) -> &'static str {
     unsafe {

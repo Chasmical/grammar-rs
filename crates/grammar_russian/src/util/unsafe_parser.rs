@@ -65,7 +65,7 @@ impl<'a> UnsafeParser<'a> {
                 return true;
             }
         }
-        return false;
+        false
     }
     pub const fn skip_str(&mut self, s: &str) -> bool {
         self.skip_bytes(s.as_bytes())

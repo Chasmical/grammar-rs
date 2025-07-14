@@ -1,5 +1,5 @@
 use super::{HasAnimacy, Number};
-use crate::util::{const_traits::*, enum_conversion};
+use crate::util::*;
 use thiserror::Error;
 
 /// A main or secondary Russian grammatical case.

@@ -1,5 +1,5 @@
 use super::{animacy::*, gender::*};
-use crate::util::{const_traits::*, enum_conversion};
+use crate::util::*;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum GenderExAnimacy {

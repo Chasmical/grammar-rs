@@ -1,4 +1,4 @@
-use crate::{categories::*, declension::*, stress::*, util::const_traits::*};
+use crate::{categories::*, declension::*, stress::*, util::*};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Declension {
@@ -13,6 +13,7 @@ pub enum DeclensionKind {
     Adjective,
 }
 
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NounDeclension {
     pub stem_type: NounStemType,
@@ -20,12 +21,14 @@ pub struct NounDeclension {
     pub stress: NounStress,
     pub override_gender: Option<GenderAnimacy>,
 }
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PronounDeclension {
     pub stem_type: PronounStemType,
     pub flags: DeclensionFlags,
     pub stress: PronounStress,
 }
+#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AdjectiveDeclension {
     pub stem_type: AdjectiveStemType,
@@ -85,11 +88,11 @@ impl Declension {
     pub const fn is_noun(self) -> bool {
         matches!(self, Self::Noun(_))
     }
-    pub const fn is_adjective(self) -> bool {
-        matches!(self, Self::Adjective(_))
-    }
     pub const fn is_pronoun(self) -> bool {
         matches!(self, Self::Pronoun(_))
+    }
+    pub const fn is_adjective(self) -> bool {
+        matches!(self, Self::Adjective(_))
     }
 
     pub const fn stem_type(self) -> AnyStemType {

@@ -1,4 +1,4 @@
-use crate::util::{const_traits::*, enum_conversion};
+use crate::util::*;
 use thiserror::Error;
 
 /// A main or secondary Russian grammatical gender: [`Masculine`][GenderEx::Masculine],
