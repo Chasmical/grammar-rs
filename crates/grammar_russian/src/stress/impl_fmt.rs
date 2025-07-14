@@ -95,16 +95,8 @@ impl const PartialParse for AnyStress {
 
         Ok(match primes {
             0 => letter,
-            // FIXME(const-hack): Replace with `.ok_or(Err(…))`.
-            1 => match letter.add_single_prime() {
-                Some(stress) => stress,
-                None => return Err(ParseStressError::InvalidPrime),
-            },
-            // FIXME(const-hack): Replace with `.ok_or(Err(…))`.
-            2 => match letter.add_double_prime() {
-                Some(stress) => stress,
-                None => return Err(ParseStressError::InvalidPrime),
-            },
+            1 => const_try!(letter.add_single_prime(), ParseStressError::InvalidPrime {}),
+            2 => const_try!(letter.add_double_prime(), ParseStressError::InvalidPrime {}),
             _ => unreachable!(),
         })
     }
@@ -148,7 +140,6 @@ macro_rules! derive_stress_impls {
         }
         impl std::fmt::Display for $t {
             fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                // TODO: there should be a special constructor, that converts `a/a` to `a`
                 AnyStress::from(*self).fmt(f)
             }
         }

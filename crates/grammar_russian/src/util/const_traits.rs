@@ -99,12 +99,30 @@ where Result<T, E>: Copy
 
 // FIXME(const-hack): Remove these when ? and From<Err> are constified.
 
+#[const_trait]
+pub(crate) trait _Tryable<T, E> {
+    fn _as_result(self) -> Result<T, E>;
+}
+impl<T: Copy, E> const _Tryable<T, E> for Result<T, E> {
+    fn _as_result(self) -> Result<T, E> {
+        self
+    }
+}
+impl<T: Copy> const _Tryable<T, ()> for Option<T> {
+    fn _as_result(self) -> Result<T, ()> {
+        match self {
+            Some(x) => Ok(x),
+            None => Err(()),
+        }
+    }
+}
+
 macro_rules! const_try {
     ($expr:expr) => (const_try!($expr, x => x));
     ($expr:expr, $err_fn:path) => (const_try!($expr, x => $err_fn(x)));
     ($expr:expr, $err_expr:expr) => (const_try!($expr, _x => $err_expr));
     ($expr:expr, $err:ident => $err_expr:expr) => ({
-        match $expr {
+        match $crate::util::_Tryable::<_, _>::_as_result($expr) {
             Ok(x) => x,
             Err($err) => return Err($err_expr),
         }
