@@ -125,3 +125,123 @@ impl_const_TryFrom!(<Declension> for AdjectiveDeclension {
         if let Declension::Adjective(x) = value { Ok(x) } else { Err(()) }
     }
 });
+
+#[repr(transparent)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MaybeZeroDeclension(Option<Declension>);
+
+// FIXME(const-hack): Replace `matches!()` and `if let Some(x)` with `.map(|x| ...)` everywhere below.
+
+impl MaybeZeroDeclension {
+    pub const fn as_option(self) -> Option<Declension> {
+        self.0
+    }
+
+    pub const fn is_zero(self) -> bool {
+        self.0.is_none()
+    }
+    pub const fn is_noun(self) -> bool {
+        matches!(self.0, Some(Declension::Noun(_)))
+    }
+    pub const fn is_pronoun(self) -> bool {
+        matches!(self.0, Some(Declension::Pronoun(_)))
+    }
+    pub const fn is_adjective(self) -> bool {
+        matches!(self.0, Some(Declension::Adjective(_)))
+    }
+    pub const fn as_noun(self) -> Option<NounDeclension> {
+        if let Some(Declension::Noun(x)) = self.0 { Some(x) } else { None }
+    }
+    pub const fn as_pronoun(self) -> Option<PronounDeclension> {
+        if let Some(Declension::Pronoun(x)) = self.0 { Some(x) } else { None }
+    }
+    pub const fn as_adjective(self) -> Option<AdjectiveDeclension> {
+        if let Some(Declension::Adjective(x)) = self.0 { Some(x) } else { None }
+    }
+
+    pub const fn kind(self) -> Option<DeclensionKind> {
+        if let Some(x) = self.0 { Some(x.kind()) } else { None }
+    }
+    pub const fn stem_type(self) -> Option<AnyStemType> {
+        if let Some(x) = self.0 { Some(x.stem_type()) } else { None }
+    }
+    pub const fn flags(self) -> DeclensionFlags {
+        if let Some(x) = self.0 { x.flags() } else { DeclensionFlags::empty() }
+    }
+    pub const fn stress(self) -> Option<AnyDualStress> {
+        if let Some(x) = self.0 { Some(x.stress()) } else { None }
+    }
+}
+
+impl_const_From!(<NounDeclension> for MaybeZeroDeclension {
+    fn from(value: NounDeclension) -> Self {
+        Self(Some(Declension::Noun(value)))
+    }
+});
+impl_const_From!(<PronounDeclension> for MaybeZeroDeclension {
+    fn from(value: PronounDeclension) -> Self {
+        Self(Some(Declension::Pronoun(value)))
+    }
+});
+impl_const_From!(<AdjectiveDeclension> for MaybeZeroDeclension {
+    fn from(value: AdjectiveDeclension) -> Self {
+        Self(Some(Declension::Adjective(value)))
+    }
+});
+impl_const_From!(<Declension> for MaybeZeroDeclension {
+    fn from(value: Declension) -> Self {
+        Self(Some(value))
+    }
+});
+
+impl_const_TryFrom!(<MaybeZeroDeclension> for NounDeclension {
+    type Error = ();
+    fn try_from(value: MaybeZeroDeclension) -> Result<Self, Self::Error> {
+        if let Some(Declension::Noun(x)) = value.0 { Ok(x) } else { Err(()) }
+    }
+});
+impl_const_TryFrom!(<MaybeZeroDeclension> for PronounDeclension {
+    type Error = ();
+    fn try_from(value: MaybeZeroDeclension) -> Result<Self, Self::Error> {
+        if let Some(Declension::Pronoun(x)) = value.0 { Ok(x) } else { Err(()) }
+    }
+});
+impl_const_TryFrom!(<MaybeZeroDeclension> for AdjectiveDeclension {
+    type Error = ();
+    fn try_from(value: MaybeZeroDeclension) -> Result<Self, Self::Error> {
+        if let Some(Declension::Adjective(x)) = value.0 { Ok(x) } else { Err(()) }
+    }
+});
+impl_const_TryFrom!(<MaybeZeroDeclension> for Declension {
+    type Error = ();
+    fn try_from(value: MaybeZeroDeclension) -> Result<Self, Self::Error> {
+        if let Some(x) = value.0 { Ok(x) } else { Err(()) }
+    }
+});
+
+impl_const_From!(<Option<NounDeclension>> for MaybeZeroDeclension {
+    fn from(value: Option<NounDeclension>) -> Self {
+        Self(if let Some(x) = value { Some(Declension::Noun(x)) } else { None })
+    }
+});
+impl_const_From!(<Option<PronounDeclension>> for MaybeZeroDeclension {
+    fn from(value: Option<PronounDeclension>) -> Self {
+        Self(if let Some(x) = value { Some(Declension::Pronoun(x)) } else { None })
+    }
+});
+impl_const_From!(<Option<AdjectiveDeclension>> for MaybeZeroDeclension {
+    fn from(value: Option<AdjectiveDeclension>) -> Self {
+        Self(if let Some(x) = value { Some(Declension::Adjective(x)) } else { None })
+    }
+});
+
+impl_const_From!(<Option<Declension>> for MaybeZeroDeclension {
+    fn from(value: Option<Declension>) -> Self {
+        Self(value)
+    }
+});
+impl_const_From!(<MaybeZeroDeclension> for Option<Declension> {
+    fn from(value: MaybeZeroDeclension) -> Self {
+        value.0
+    }
+});

@@ -51,6 +51,7 @@ macro_rules! impl_const_From {
     ) => (
         impl From<$a> for $b {
             $(#[$outer])*
+            #[allow(clippy::manual_map)]
             fn from($param: $a2) -> Self $body
         }
         impl const $crate::util::_From<$a> for $b {
@@ -70,6 +71,7 @@ macro_rules! impl_const_TryFrom {
         impl TryFrom<$a> for $b {
             type Error = $err;
             $(#[$outer])*
+            #[allow(clippy::manual_map)]
             fn try_from($param: $a2) -> Result<Self, Self::Error> $body
         }
         impl const $crate::util::_TryFrom<$a> for $b {
