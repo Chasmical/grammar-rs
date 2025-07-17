@@ -1,4 +1,7 @@
-use crate::{InflectionBuffer, declension::*};
+use crate::{
+    InflectionBuffer,
+    declension::{DeclInfo, Declension, PronounDeclension},
+};
 use std::fmt::Display;
 
 pub struct Pronoun<'a> {

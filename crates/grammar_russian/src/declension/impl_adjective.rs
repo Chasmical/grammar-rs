@@ -1,4 +1,7 @@
-use crate::{InflectionBuffer, declension::*};
+use crate::{
+    InflectionBuffer,
+    declension::{AdjectiveDeclension, DeclInfo, Declension},
+};
 use std::fmt::Display;
 
 pub struct Adjective<'a> {

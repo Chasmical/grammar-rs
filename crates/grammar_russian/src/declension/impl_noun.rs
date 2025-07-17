@@ -1,4 +1,12 @@
-use crate::{InflectionBuffer, Letter, categories::*, declension::*, letters, stress::*};
+use crate::{
+    InflectionBuffer, Letter,
+    categories::{
+        Animacy, Case, CaseEx, Gender, GenderEx, HasAnimacy, HasGender, HasNumber, Number,
+    },
+    declension::{DeclInfo, Declension, NounDeclension, NounStemType},
+    letters,
+    stress::NounStress,
+};
 use std::fmt::Display;
 
 pub struct Noun<'a> {

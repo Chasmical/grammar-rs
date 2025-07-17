@@ -1,4 +1,8 @@
-use crate::{categories::*, declension::*, util::slice_find};
+use crate::{
+    categories::{Case, HasNumber},
+    declension::{AdjectiveDeclension, DeclInfo, NounDeclension, PronounDeclension},
+    util::slice_find,
+};
 
 // All endings of nouns, adjectives and pronouns in one 55-char span
 const ENDINGS: &[u8] = "оегоговыеейёмойёйамийаямиемуююахяяхыйыхымихомуимиевёвью".as_bytes();
@@ -61,6 +65,45 @@ const NOUN_LOOKUP: [(u8, u8); 288] = [
 ];
 
 #[rustfmt::skip]
+const PRO_LOOKUP: [(u8, u8); 168] = [
+    // stem types: 1,    2,   3,    4,    5,    6,   7
+    /* nom masc */ null, ь,   null, null, null, й,   й,
+    /* nom n    */ о,    е_ё, о,    е_о,  е_о,  е_ё, е_ё,
+    /* nom fem  */ а,    я,   а,    а,    а,    я,   я,
+    /* nom pl   */ ы,    и,   и,    и,    ы,    и,   и,
+
+    // stem types: 1,  2,  3,   4,       5,       6,   7
+    /* gen masc */ а,  я,  ого, его_ого, его_ого, его, его,
+    /* gen n    */ а,  я,  ого, его_ого, его_ого, его, его,
+    /* gen fem  */ ой, ей, ой,  ей_ой,   ей_ой,   ей,  ей,
+    /* gen pl   */ ых, их, их,  их,      ых,      их,  их,
+
+    // stem types: 1,  2,  3,   4,       5,       6,   7
+    /* dat masc */ у,  ю,  ому, ему_ому, ему_ому, ему, ему,
+    /* dat n    */ у,  ю,  ому, ему_ому, ему_ому, ему, ему,
+    /* dat fem  */ ой, ей, ой,  ей_ой,   ей_ой,   ей,  ей,
+    /* dat pl   */ ым, им, им,  им,      ым,      им,  им,
+
+    // stem types: 1,   2,   3,   4,   5,   6,   7
+    /* acc masc */ acc, acc, acc, acc, acc, acc, acc,
+    /* acc n    */ acc, acc, acc, acc, acc, acc, acc,
+    /* acc fem  */ у,   ю,   у,   у,   у,   ю,   ю,
+    /* acc pl   */ acc, acc, acc, acc, acc, acc, acc,
+
+    // stem types: 1,   2,   3,   4,     5,     6,   7
+    /* ins masc */ ым,  им,  им,  им,    ым,    им,  им,
+    /* ins n    */ ым,  им,  им,  им,    ым,    им,  им,
+    /* ins fem  */ ой,  ей,  ой,  ей_ой, ей_ой, ей,  ей,
+    /* ins pl   */ ыми, ими, ими, ими,   ыми,   ими, ими,
+
+    // stem types: 1,  2,     3,  4,     5,     6,     7
+    /* prp masc */ ом, ем_ём, ом, ем_ом, ем_ом, ем_ём, ем_ём,
+    /* prp n    */ ом, ем_ём, ом, ем_ом, ем_ом, ем_ём, ем_ём,
+    /* prp fem  */ ой, ей,    ой, ей_ой, ей_ой, ей,    ей,
+    /* prp pl   */ ых, их,    их, их,    ых,    их,    их,
+];
+
+#[rustfmt::skip]
 const ADJ_LOOKUP: [(u8, u8); 196] = [
     // stem types: 1,     2,  3,     4,     5,     6,  7
     /* nom masc */ ый_ой, ий, ий_ой, ий_ой, ый_ой, ий, ий,
@@ -105,45 +148,6 @@ const ADJ_LOOKUP: [(u8, u8); 196] = [
     /* srt pl   */ ы,    и,   и,    и,    ы,    и,   и,
 ];
 
-#[rustfmt::skip]
-const PRO_LOOKUP: [(u8, u8); 168] = [
-    // stem types: 1,    2,   3,    4,    5,    6,   7
-    /* nom masc */ null, ь,   null, null, null, й,   й,
-    /* nom n    */ о,    е_ё, о,    е_о,  е_о,  е_ё, е_ё,
-    /* nom fem  */ а,    я,   а,    а,    а,    я,   я,
-    /* nom pl   */ ы,    и,   и,    и,    ы,    и,   и,
-
-    // stem types: 1,  2,  3,   4,       5,       6,   7
-    /* gen masc */ а,  я,  ого, его_ого, его_ого, его, его,
-    /* gen n    */ а,  я,  ого, его_ого, его_ого, его, его,
-    /* gen fem  */ ой, ей, ой,  ей_ой,   ей_ой,   ей,  ей,
-    /* gen pl   */ ых, их, их,  их,      ых,      их,  их,
-
-    // stem types: 1,  2,  3,   4,       5,       6,   7
-    /* dat masc */ у,  ю,  ому, ему_ому, ему_ому, ему, ему,
-    /* dat n    */ у,  ю,  ому, ему_ому, ему_ому, ему, ему,
-    /* dat fem  */ ой, ей, ой,  ей_ой,   ей_ой,   ей,  ей,
-    /* dat pl   */ ым, им, им,  им,      ым,      им,  им,
-
-    // stem types: 1,   2,   3,   4,   5,   6,   7
-    /* acc masc */ acc, acc, acc, acc, acc, acc, acc,
-    /* acc n    */ acc, acc, acc, acc, acc, acc, acc,
-    /* acc fem  */ у,   ю,   у,   у,   у,   ю,   ю,
-    /* acc pl   */ acc, acc, acc, acc, acc, acc, acc,
-
-    // stem types: 1,   2,   3,   4,     5,     6,   7
-    /* ins masc */ ым,  им,  им,  им,    ым,    им,  им,
-    /* ins n    */ ым,  им,  им,  им,    ым,    им,  им,
-    /* ins fem  */ ой,  ей,  ой,  ей_ой, ей_ой, ей,  ей,
-    /* ins pl   */ ыми, ими, ими, ими,   ыми,   ими, ими,
-
-    // stem types: 1,  2,     3,  4,     5,     6,     7
-    /* prp masc */ ом, ем_ём, ом, ем_ом, ем_ом, ем_ём, ем_ём,
-    /* prp n    */ ом, ем_ём, ом, ем_ом, ем_ом, ем_ём, ем_ём,
-    /* prp fem  */ ой, ей,    ой, ей_ой, ей_ой, ей,    ей,
-    /* prp pl   */ ых, их,    их, их,    ых,    их,    их,
-];
-
 macro_rules! define_endings {
     ($($ident:ident)*) => ($(
         const $ident: (u8, u8) = find_ending_indices(stringify!($ident));
@@ -155,7 +159,7 @@ macro_rules! define_endings {
 
 define_endings! {
     о е ов ы ей й ё ём ой ёй а ам ами и я ям ями ем у ю ах ях ом ев ёв ь ью // nouns
-    ое его ого ые ее ий ая ие ему ую юю яя ый ых ым ыми их ому им ими // adjectives, pronouns
+    ое его ого ые ее ий ая ие ему ую юю яя ый ых ым ыми их ому им ими // pronouns, adjectives
 }
 define_endings! {
     // nouns
@@ -164,7 +168,7 @@ define_endings! {
     ем_ём(ем, ём), ем_ом(ем, ом),
     ей_ёй(ей, ёй), ей_ой(ей, ой),
     ь_ей(ь, ей), null_ей(null, ей),
-    // adjectives, pronouns
+    // pronouns, adjectives
     ее_ое(ее, ое), ый_ой(ый, ой), ий_ой(ий, ой),
     его_ого(его, ого), ему_ому(ему, ому),
 }
@@ -188,10 +192,10 @@ const fn get_ending_by_index(index: u8) -> &'static str {
 
 impl NounDeclension {
     pub const fn get_ending(self, info: DeclInfo) -> &'static str {
-        let (mut un_str, mut str) = self.lookup(info, info.case());
+        let (mut un_str, mut str) = self.lookup(info, info.case);
 
         if un_str == 0 {
-            let case = info.animacy().acc_case();
+            let case = info.animacy.acc_case();
             (un_str, str) = self.lookup(info, case);
         }
 
@@ -200,30 +204,10 @@ impl NounDeclension {
     }
     const fn lookup(self, info: DeclInfo, case: Case) -> (u8, u8) {
         let mut x = case as usize;
-        x = x * 2 + info.number() as usize;
-        x = x * 3 + info.gender() as usize;
+        x = x * 2 + info.number as usize;
+        x = x * 3 + info.gender as usize;
         x = x * 8 + (self.stem_type as usize - 1);
         NOUN_LOOKUP[x]
-    }
-}
-
-impl AdjectiveDeclension {
-    pub const fn get_ending(self, info: DeclInfo) -> &'static str {
-        let (mut un_str, mut str) = self.lookup(info, info.case());
-
-        if un_str == 0 {
-            let case = info.animacy().acc_case();
-            (un_str, str) = self.lookup(info, case);
-        }
-
-        let stressed = un_str == str || self.stress.full.is_ending_stressed();
-        get_ending_by_index(if stressed { str } else { un_str })
-    }
-    const fn lookup(self, info: DeclInfo, case: Case) -> (u8, u8) {
-        let mut x = case as usize;
-        x = x * 4 + (if info.is_singular() { info.gender as usize } else { 3 });
-        x = x * 7 + (self.stem_type as usize - 1);
-        ADJ_LOOKUP[x]
     }
 }
 
@@ -244,5 +228,25 @@ impl PronounDeclension {
         x = x * 4 + (if info.is_singular() { info.gender as usize } else { 3 });
         x = x * 7 + (self.stem_type as usize - 1);
         PRO_LOOKUP[x]
+    }
+}
+
+impl AdjectiveDeclension {
+    pub const fn get_ending(self, info: DeclInfo) -> &'static str {
+        let (mut un_str, mut str) = self.lookup(info, info.case);
+
+        if un_str == 0 {
+            let case = info.animacy.acc_case();
+            (un_str, str) = self.lookup(info, case);
+        }
+
+        let stressed = un_str == str || self.stress.full.is_ending_stressed();
+        get_ending_by_index(if stressed { str } else { un_str })
+    }
+    const fn lookup(self, info: DeclInfo, case: Case) -> (u8, u8) {
+        let mut x = case as usize;
+        x = x * 4 + (if info.is_singular() { info.gender as usize } else { 3 });
+        x = x * 7 + (self.stem_type as usize - 1);
+        ADJ_LOOKUP[x]
     }
 }
