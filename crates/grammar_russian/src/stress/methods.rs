@@ -1,5 +1,12 @@
-use super::defs::*;
-use crate::{categories::*, declension::DeclInfo, util::*};
+use crate::{
+    categories::{Case, Gender, HasNumber, Number},
+    declension::DeclInfo,
+    stress::{
+        AdjectiveFullStress, AdjectiveShortStress, AdjectiveStress, AnyDualStress, AnyStress,
+        NounStress, PronounStress, VerbPastStress, VerbPresentStress, VerbStress,
+    },
+    util::const_traits::*,
+};
 
 impl AnyStress {
     pub const fn has_any_primes(self) -> bool {
@@ -110,17 +117,17 @@ impl NounStress {
             Self::B => false,
             Self::C => info.is_singular(),
             Self::D => info.is_plural(),
-            Self::E => info.is_singular() || info.case().is_nom_or_acc_inan(info),
-            Self::F => info.is_plural() && info.case().is_nom_or_acc_inan(info),
-            Self::Bp => info.is_singular() && matches!(info.case(), Case::Instrumental),
-            Self::Dp => info.is_plural() || matches!(info.case(), Case::Accusative),
-            Self::Fp => match info.number() {
-                Number::Singular => matches!(info.case(), Case::Accusative),
-                Number::Plural => info.case().is_nom_or_acc_inan(info),
+            Self::E => info.is_singular() || info.case.is_nom_or_acc_inan(info),
+            Self::F => info.is_plural() && info.case.is_nom_or_acc_inan(info),
+            Self::Bp => info.is_singular() && matches!(info.case, Case::Instrumental),
+            Self::Dp => info.is_plural() || matches!(info.case, Case::Accusative),
+            Self::Fp => match info.number {
+                Number::Singular => matches!(info.case, Case::Accusative),
+                Number::Plural => info.case.is_nom_or_acc_inan(info),
             },
-            Self::Fpp => match info.number() {
-                Number::Singular => matches!(info.case(), Case::Instrumental),
-                Number::Plural => info.case().is_nom_or_acc_inan(info),
+            Self::Fpp => match info.number {
+                Number::Singular => matches!(info.case, Case::Instrumental),
+                Number::Plural => info.case.is_nom_or_acc_inan(info),
             },
         }
     }
@@ -134,7 +141,7 @@ impl PronounStress {
         match self {
             PronounStress::A => true,
             PronounStress::B => false,
-            PronounStress::F => info.is_plural() && info.case().is_nom_or_acc_inan(info),
+            PronounStress::F => info.is_plural() && info.case.is_nom_or_acc_inan(info),
         }
     }
     pub const fn is_ending_stressed(self, info: DeclInfo) -> bool {

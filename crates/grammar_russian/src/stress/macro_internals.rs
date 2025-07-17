@@ -1,5 +1,7 @@
-#![doc(hidden)]
-use super::defs::*;
+use crate::stress::{
+    AdjectiveFullStress, AdjectiveShortStress, AdjectiveStress, AnyDualStress, AnyStress,
+    NounStress, PronounStress, VerbPastStress, VerbPresentStress, VerbStress,
+};
 
 #[allow(non_camel_case_types)]
 pub mod aliases {
@@ -160,11 +162,11 @@ pub use stress;
 mod tests {
     use crate::stress::*;
 
-    fn assert<T: std::fmt::Debug + PartialEq>(left: T, right: T) {
+    fn assert_eq<T: std::fmt::Debug + PartialEq>(left: T, right: T) {
         assert_eq!(left, right);
     }
     #[allow(unused)]
-    fn invalid<T: TryFrom<AnyStress>>(values: &[T]) {
+    fn assert_invalid<T: TryFrom<AnyStress>>(values: &[T]) {
         panic!();
     }
 
@@ -172,18 +174,18 @@ mod tests {
     fn expand_noun() {
         type Stress = NounStress;
 
-        assert(stress![a], Stress::A);
-        assert(stress![b], Stress::B);
-        assert(stress![c], Stress::C);
-        assert(stress![d], Stress::D);
-        assert(stress![e], Stress::E);
-        assert(stress![f], Stress::F);
-        assert(stress![b1], Stress::Bp);
-        assert(stress![d1], Stress::Dp);
-        assert(stress![f1], Stress::Fp);
-        assert(stress![f2], Stress::Fpp);
+        assert_eq(stress![a], Stress::A);
+        assert_eq(stress![b], Stress::B);
+        assert_eq(stress![c], Stress::C);
+        assert_eq(stress![d], Stress::D);
+        assert_eq(stress![e], Stress::E);
+        assert_eq(stress![f], Stress::F);
+        assert_eq(stress![b1], Stress::Bp);
+        assert_eq(stress![d1], Stress::Dp);
+        assert_eq(stress![f1], Stress::Fp);
+        assert_eq(stress![f2], Stress::Fpp);
 
-        // invalid::<Stress>(&[
+        // assert_invalid::<Stress>(&[
         //     stress![a1],
         //     stress![c1],
         //     stress![e1],
@@ -196,11 +198,11 @@ mod tests {
     fn expand_pro() {
         type Stress = PronounStress;
 
-        assert(stress![a], Stress::A);
-        assert(stress![b], PronounStress::B);
-        assert(stress![f], PronounStress::F);
+        assert_eq(stress![a], Stress::A);
+        assert_eq(stress![b], PronounStress::B);
+        assert_eq(stress![f], PronounStress::F);
 
-        // invalid::<Stress>(&[
+        // assert_invalid::<Stress>(&[
         //     stress![c],
         //     stress![a1],
         //     stress![c2],
@@ -212,10 +214,10 @@ mod tests {
     fn expand_adj_full() {
         type Stress = AdjectiveFullStress;
 
-        assert(stress![a], Stress::A);
-        assert(stress![b], Stress::B);
+        assert_eq(stress![a], Stress::A);
+        assert_eq(stress![b], Stress::B);
 
-        // invalid::<Stress>(&[
+        // assert_invalid::<Stress>(&[
         //     stress![c],
         //     stress![a1],
         //     stress![c2],
@@ -227,15 +229,15 @@ mod tests {
     fn expand_adj_short() {
         type Stress = AdjectiveShortStress;
 
-        assert(stress![a], Stress::A);
-        assert(stress![b], Stress::B);
-        assert(stress![c], Stress::C);
-        assert(stress![a1], Stress::Ap);
-        assert(stress![b1], Stress::Bp);
-        assert(stress![c1], Stress::Cp);
-        assert(stress![c2], Stress::Cpp);
+        assert_eq(stress![a], Stress::A);
+        assert_eq(stress![b], Stress::B);
+        assert_eq(stress![c], Stress::C);
+        assert_eq(stress![a1], Stress::Ap);
+        assert_eq(stress![b1], Stress::Bp);
+        assert_eq(stress![c1], Stress::Cp);
+        assert_eq(stress![c2], Stress::Cpp);
 
-        // invalid::<Stress>(&[
+        // assert_invalid::<Stress>(&[
         //     stress![d],
         //     stress![d1],
         //     stress![f2],
@@ -247,18 +249,18 @@ mod tests {
     fn expand_adj_dual() {
         type Stress = AdjectiveStress;
 
-        assert(stress![a], Stress::A);
-        assert(stress![b], Stress::B);
-        assert(stress![a / b], Stress::A_B);
-        assert(stress![b / c], Stress::B_C);
-        assert(stress![a1], Stress::Ap);
-        assert(stress![b1], Stress::Bp);
-        assert(stress![a / a1], Stress::Ap);
-        assert(stress![b / b1], Stress::Bp);
-        assert(stress![b / c1], Stress::B_Cp);
-        assert(stress![a / c2], Stress::A_Cpp);
+        assert_eq(stress![a], Stress::A);
+        assert_eq(stress![b], Stress::B);
+        assert_eq(stress![a / b], Stress::A_B);
+        assert_eq(stress![b / c], Stress::B_C);
+        assert_eq(stress![a1], Stress::Ap);
+        assert_eq(stress![b1], Stress::Bp);
+        assert_eq(stress![a / a1], Stress::Ap);
+        assert_eq(stress![b / b1], Stress::Bp);
+        assert_eq(stress![b / c1], Stress::B_Cp);
+        assert_eq(stress![a / c2], Stress::A_Cpp);
 
-        // invalid::<Stress>(&[
+        // assert_invalid::<Stress>(&[
         //     stress![c],
         //     stress![c1],
         //     stress![c2],
@@ -270,12 +272,12 @@ mod tests {
     fn expand_verb_present() {
         type Stress = VerbPresentStress;
 
-        assert(stress![a], Stress::A);
-        assert(stress![b], Stress::B);
-        assert(stress![c], Stress::C);
-        assert(stress![c1], Stress::Cp);
+        assert_eq(stress![a], Stress::A);
+        assert_eq(stress![b], Stress::B);
+        assert_eq(stress![c], Stress::C);
+        assert_eq(stress![c1], Stress::Cp);
 
-        // invalid::<Stress>(&[
+        // assert_invalid::<Stress>(&[
         //     stress![d],
         //     stress![a1],
         //     stress![c2],
@@ -287,13 +289,13 @@ mod tests {
     fn expand_verb_past() {
         type Stress = VerbPastStress;
 
-        assert(stress![a], Stress::A);
-        assert(stress![b], Stress::B);
-        assert(stress![c], Stress::C);
-        assert(stress![c1], Stress::Cp);
-        assert(stress![c2], Stress::Cpp);
+        assert_eq(stress![a], Stress::A);
+        assert_eq(stress![b], Stress::B);
+        assert_eq(stress![c], Stress::C);
+        assert_eq(stress![c1], Stress::Cp);
+        assert_eq(stress![c2], Stress::Cpp);
 
-        // invalid::<Stress>(&[
+        // assert_invalid::<Stress>(&[
         //     stress![d],
         //     stress![a1],
         //     stress![f2],
@@ -305,15 +307,15 @@ mod tests {
     fn expand_verb_dual() {
         type Stress = VerbStress;
 
-        assert(stress![a], Stress::A);
-        assert(stress![b], Stress::B);
-        assert(stress![c], Stress::C);
-        assert(stress![c1], Stress::Cp);
-        assert(stress![c / b], Stress::C_B);
-        assert(stress![a / c1], Stress::A_Cp);
-        assert(stress![c1 / c2], Stress::Cp_Cpp);
+        assert_eq(stress![a], Stress::A);
+        assert_eq(stress![b], Stress::B);
+        assert_eq(stress![c], Stress::C);
+        assert_eq(stress![c1], Stress::Cp);
+        assert_eq(stress![c / b], Stress::C_B);
+        assert_eq(stress![a / c1], Stress::A_Cp);
+        assert_eq(stress![c1 / c2], Stress::Cp_Cpp);
 
-        // invalid::<Stress>(&[
+        // assert_invalid::<Stress>(&[
         //     stress![d],
         //     stress![a1],
         //     stress![f2],

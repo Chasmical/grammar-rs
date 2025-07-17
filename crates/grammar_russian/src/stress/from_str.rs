@@ -1,65 +1,10 @@
-use super::defs::*;
-use crate::util::*;
-
-impl AnyStress {
-    pub const fn fmt_to(self, dst: &mut [u8; 4]) -> &mut str {
-        // Write the letter: a, b, c, d, e, f
-        dst[0] = match self.unprime() {
-            Self::A => b'a',
-            Self::B => b'b',
-            Self::C => b'c',
-            Self::D => b'd',
-            Self::E => b'e',
-            Self::F => b'f',
-            _ => unreachable!(),
-        };
-
-        // If the stress has primes, it will occupy the entire 4 byte buffer
-        if self.has_any_primes() {
-            // Write the UTF-8 bytes of ′ or ″
-            let ch = if self.has_double_prime() { '″' } else { '′' };
-            ch.encode_utf8(dst.last_chunk_mut::<3>().unwrap());
-
-            // Return string slice from the entire buffer
-            unsafe { str::from_utf8_unchecked_mut(dst) }
-        } else {
-            // Return string slice of length 1, containing only the letter
-            let slice = unsafe { std::slice::from_raw_parts_mut(dst.as_mut_ptr(), 1) };
-            unsafe { str::from_utf8_unchecked_mut(slice) }
-        }
-    }
-}
-impl AnyDualStress {
-    pub const fn fmt_to(self, dst: &mut [u8; 9]) -> &mut str {
-        let mut dst = UnsafeBuf::new(dst);
-
-        // Format main into a 4-byte sub-buffer
-        let main_len = self.main.fmt_to(dst.chunk()).len();
-        dst.forward(main_len);
-
-        if let Some(alt) = self.alt {
-            // Append '/' as a separator
-            dst.push('/');
-
-            // Format alt into a 4-byte sub-buffer
-            let alt_len = alt.fmt_to(dst.chunk()).len();
-            dst.forward(alt_len);
-        }
-
-        dst.finish()
-    }
-}
-
-impl std::fmt::Display for AnyStress {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.fmt_to(&mut [0; 4]).fmt(f)
-    }
-}
-impl std::fmt::Display for AnyDualStress {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.fmt_to(&mut [0; 9]).fmt(f)
-    }
-}
+use crate::{
+    stress::{
+        AdjectiveFullStress, AdjectiveShortStress, AdjectiveStress, AnyDualStress, AnyStress,
+        NounStress, PronounStress, VerbPastStress, VerbPresentStress, VerbStress,
+    },
+    util::{PartialParse, UnsafeParser, const_traits::*},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ParseStressError {
@@ -138,11 +83,6 @@ macro_rules! derive_stress_impls {
                 AnyStress::from_str(s)?.try_into().or(Err(Self::Err::Incompatible))
             }
         }
-        impl std::fmt::Display for $t {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                AnyStress::from(*self).fmt(f)
-            }
-        }
     )*);
 }
 derive_stress_impls! {
@@ -161,74 +101,14 @@ impl std::str::FromStr for VerbStress {
         AnyDualStress::from_str(s)?.try_into().or(Err(Self::Err::Incompatible))
     }
 }
-impl std::fmt::Display for AdjectiveStress {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.abbr().fmt(f)
-    }
-}
-impl std::fmt::Display for VerbStress {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.abbr().fmt(f)
-    }
-}
 
 #[cfg(test)]
 mod tests {
-    use crate::stress::*;
-
-    #[test]
-    fn fmt_any() {
-        fn assert<T: std::fmt::Display>(value: T, expected: &str) {
-            assert_eq!(value.to_string(), expected);
-        }
-
-        assert(AnyStress::A, "a");
-        assert(AnyStress::B, "b");
-        assert(AnyStress::C, "c");
-        assert(AnyStress::D, "d");
-        assert(AnyStress::E, "e");
-        assert(AnyStress::F, "f");
-        assert(AnyStress::Ap, "a′");
-        assert(AnyStress::Bp, "b′");
-        assert(AnyStress::Cp, "c′");
-        assert(AnyStress::Dp, "d′");
-        assert(AnyStress::Ep, "e′");
-        assert(AnyStress::Fp, "f′");
-        assert(AnyStress::Cpp, "c″");
-        assert(AnyStress::Fpp, "f″");
-
-        assert::<AnyDualStress>(stress![a], "a");
-        assert::<AnyDualStress>(stress![f], "f");
-        assert::<AnyDualStress>(stress![b1], "b′");
-        assert::<AnyDualStress>(stress![e1], "e′");
-        assert::<AnyDualStress>(stress![c2], "c″");
-        assert::<AnyDualStress>(stress![f2], "f″");
-        assert::<AnyDualStress>(stress![a / a], "a/a");
-        assert::<AnyDualStress>(stress![a / f1], "a/f′");
-        assert::<AnyDualStress>(stress![c1 / e], "c′/e");
-        assert::<AnyDualStress>(stress![f2 / c2], "f″/c″");
-
-        assert::<AdjectiveStress>(stress![a / a], "a");
-        assert::<AdjectiveStress>(stress![b / b], "b");
-        assert::<AdjectiveStress>(stress![a / a1], "a′");
-        assert::<AdjectiveStress>(stress![b / b1], "b′");
-        assert::<AdjectiveStress>(stress![b / a], "b/a");
-        assert::<AdjectiveStress>(stress![a / c1], "a/c′");
-        assert::<AdjectiveStress>(stress![b / c2], "b/c″");
-
-        assert::<VerbStress>(stress![a / a], "a");
-        assert::<VerbStress>(stress![b / a], "b");
-        assert::<VerbStress>(stress![c / a], "c");
-        assert::<VerbStress>(stress![a / c], "a/c");
-        assert::<VerbStress>(stress![b / b], "b/b");
-        assert::<VerbStress>(stress![c / c2], "c/c″");
-        assert::<VerbStress>(stress![c1 / c], "c′/c");
-    }
+    use super::{ParseStressError as Error, *};
+    use crate::stress;
 
     #[test]
     fn parse_any() {
-        type Error = ParseStressError;
-
         assert_eq!("a".parse::<AnyStress>(), Ok(stress![a]));
         assert_eq!("f".parse::<AnyStress>(), Ok(stress![f]));
         assert_eq!("e'".parse::<AnyStress>(), Ok(stress![e1]));
@@ -271,8 +151,6 @@ mod tests {
 
     #[test]
     fn parse_typed() {
-        type Error = ParseStressError;
-
         assert_eq!("a".parse::<NounStress>(), Ok(stress![a]));
         assert_eq!("f".parse::<NounStress>(), Ok(stress![f]));
         assert_eq!("a′".parse::<NounStress>(), Err(Error::Incompatible));
@@ -322,8 +200,6 @@ mod tests {
 
     #[test]
     fn parse_dual() {
-        type Error = ParseStressError;
-
         assert_eq!("a".parse::<AdjectiveStress>(), Ok(stress![a]));
         assert_eq!("b".parse::<AdjectiveStress>(), Ok(stress![b]));
         assert_eq!("c".parse::<AdjectiveStress>(), Err(Error::Incompatible));

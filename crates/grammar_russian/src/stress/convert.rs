@@ -1,5 +1,48 @@
-use super::defs::*;
-use crate::util::*;
+use crate::{
+    stress::{
+        AdjectiveFullStress, AdjectiveShortStress, AdjectiveStress, AnyDualStress, AnyStress,
+        NounStress, PronounStress, VerbPastStress, VerbPresentStress, VerbStress,
+    },
+    util::{const_traits::*, enum_conversion},
+};
+use thiserror::Error;
+
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("words can only have stresses a-f, a′-f′, c″ and f″")]
+pub struct AnyStressError;
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("nouns can only have stresses a, b, c, d, e, f, b′, d′, f′ and f″")]
+pub struct NounStressError;
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("pronouns can only have stresses a, b and f")]
+pub struct PronounStressError;
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("adjectives (full form) can only have stresses a and b")]
+pub struct AdjectiveFullStressError;
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("adjectives (short form) can only have stresses a, b, c, a′, b′, c′ and c″")]
+pub struct AdjectiveShortStressError;
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("verbs (present tense) can only have stresses a, b, c and c′")]
+pub struct VerbPresentStressError;
+#[derive(Debug, Default, Error, Clone, Copy, PartialEq, Eq)]
+#[error("verbs (past tense) can only have stresses a, b, c, c′ and c″")]
+pub struct VerbPastStressError;
+
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+pub enum AdjectiveStressError {
+    #[error("{0}")]
+    Full(#[from] AdjectiveFullStressError),
+    #[error("{0}")]
+    Short(#[from] AdjectiveShortStressError),
+}
+#[derive(Debug, Error, Clone, Copy, PartialEq, Eq)]
+pub enum VerbStressError {
+    #[error("{0}")]
+    Present(#[from] VerbPresentStressError),
+    #[error("{0}")]
+    Past(#[from] VerbPastStressError),
+}
 
 //                         TABLE OF STRESS TYPE CONVERSIONS
 // ┌———————┬——————┬——————┬——————┬——————┬——————┬——————┬——————╥——————┬——————┬——————┐
