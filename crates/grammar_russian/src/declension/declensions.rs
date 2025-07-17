@@ -1,5 +1,4 @@
 use crate::{
-    categories::GenderAnimacy,
     declension::{AdjectiveStemType, AnyStemType, DeclensionFlags, NounStemType, PronounStemType},
     stress::{AdjectiveStress, AnyDualStress, NounStress, PronounStress},
     util::const_traits::*,
@@ -18,22 +17,18 @@ pub enum DeclensionKind {
     Adjective,
 }
 
-#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NounDeclension {
     pub stem_type: NounStemType,
     pub flags: DeclensionFlags,
     pub stress: NounStress,
-    pub override_gender: Option<GenderAnimacy>,
 }
-#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PronounDeclension {
     pub stem_type: PronounStemType,
     pub flags: DeclensionFlags,
     pub stress: PronounStress,
 }
-#[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AdjectiveDeclension {
     pub stem_type: AdjectiveStemType,

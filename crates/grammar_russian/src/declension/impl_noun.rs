@@ -1,8 +1,6 @@
 use crate::{
     InflectionBuffer, Letter,
-    categories::{
-        Animacy, Case, CaseEx, Gender, GenderEx, HasAnimacy, HasGender, HasNumber, Number,
-    },
+    categories::{Animacy, Case, CaseEx, Gender, GenderEx, HasGender, HasNumber, Number},
     declension::{DeclInfo, Declension, NounDeclension, NounStemType},
     letters,
     stress::NounStress,
@@ -16,6 +14,7 @@ pub struct Noun<'a> {
 }
 pub struct NounInfo {
     pub declension: Option<Declension>,
+    pub declension_gender: Gender,
     pub gender: GenderEx,
     pub animacy: Animacy,
     pub tantum: Option<Number>,
@@ -37,7 +36,7 @@ impl<'a> Noun<'a> {
             let info = DeclInfo {
                 case,
                 number,
-                gender: self.info.gender.normalize(),
+                gender: self.info.declension_gender,
                 animacy: self.info.animacy,
             };
 
@@ -59,12 +58,7 @@ impl<'a> Noun<'a> {
 }
 
 impl NounDeclension {
-    pub fn inflect(self, mut info: DeclInfo, buf: &mut InflectionBuffer) {
-        if let Some(gender_animacy) = self.override_gender {
-            info.gender = gender_animacy.gender();
-            info.animacy = gender_animacy.animacy();
-        }
-
+    pub fn inflect(self, info: DeclInfo, buf: &mut InflectionBuffer) {
         buf.append_to_ending(self.get_ending(info));
 
         if self.flags.has_circle() {

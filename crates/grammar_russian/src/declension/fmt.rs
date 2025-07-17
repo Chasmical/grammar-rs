@@ -1,25 +1,23 @@
 use crate::{
     declension::{
-        AdjectiveDeclension, AnyStemType, Declension, DeclensionFlags, MaybeZeroDeclension,
-        NounDeclension, PronounDeclension,
+        AdjectiveDeclension, AnyStemType, DeclensionFlags, NounDeclension, PronounDeclension,
     },
     stress::AnyDualStress,
     util::{UnsafeBuf, const_traits::*},
 };
 
-// Longest forms:
-// Noun     : жо 8°*f″①②③, ё   (26 bytes, 14 chars)
-// Pronoun  : мс 8°*f①②③, ё    (23 bytes, 13 chars)
-// Adjective: п 8°*f″/f″①②③, ё (29 bytes, 16 chars)
-pub const DECLENSION_MAX_LEN: usize = 29;
-pub const DECLENSION_MAX_CHARS: usize = 16;
+// Longest form: 8°*f″/f″①②③, ё (26 bytes, 14 chars)
+pub const DECLENSION_MAX_LEN: usize = 26;
+pub const DECLENSION_MAX_CHARS: usize = 14;
 
-const fn fmt_declension_body(
+const fn fmt_declension_any(
+    dst: &mut [u8; DECLENSION_MAX_LEN],
     stem_type: AnyStemType,
     flags: DeclensionFlags,
     stress: AnyDualStress,
-    dst: &mut UnsafeBuf,
-) {
+) -> &str {
+    let mut dst = UnsafeBuf::new(dst);
+
     dst.push_byte(stem_type.to_ascii_digit());
 
     if flags.has_any_leading_flags() {
@@ -48,68 +46,23 @@ const fn fmt_declension_body(
             dst.push_str(", ё");
         }
     }
+
+    dst.finish()
 }
 
 impl NounDeclension {
     pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
-        let mut dst = UnsafeBuf::new(dst);
-        if let Some(gender_animacy) = self.override_gender {
-            dst.push_str(gender_animacy.abbr_zaliznyak());
-            dst.push(' ');
-        }
-        fmt_declension_body(self.stem_type._into(), self.flags, self.stress._into(), &mut dst);
-        dst.finish()
+        fmt_declension_any(dst, self.stem_type._into(), self.flags, self.stress._into())
     }
 }
 impl PronounDeclension {
     pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
-        let mut dst = UnsafeBuf::new(dst);
-        fmt_declension_body(self.stem_type._into(), self.flags, self.stress._into(), &mut dst);
-        dst.finish()
+        fmt_declension_any(dst, self.stem_type._into(), self.flags, self.stress._into())
     }
 }
 impl AdjectiveDeclension {
     pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
-        let mut dst = UnsafeBuf::new(dst);
-        fmt_declension_body(self.stem_type._into(), self.flags, self.stress._into(), &mut dst);
-        dst.finish()
-    }
-}
-impl Declension {
-    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
-        let mut dst = UnsafeBuf::new(dst);
-
-        let info = match self {
-            Self::Noun(decl) => {
-                if let Some(gender_animacy) = decl.override_gender {
-                    dst.push_str(gender_animacy.abbr_zaliznyak());
-                    dst.push(' ');
-                }
-                (decl.stem_type._into(), decl.flags, decl.stress._into())
-            },
-            Self::Pronoun(decl) => {
-                dst.push_str("мс ");
-                (decl.stem_type._into(), decl.flags, decl.stress._into())
-            },
-            Self::Adjective(decl) => {
-                dst.push_str("п ");
-                (decl.stem_type._into(), decl.flags, decl.stress._into())
-            },
-        };
-
-        fmt_declension_body(info.0, info.1, info.2, &mut dst);
-
-        dst.finish()
-    }
-}
-impl MaybeZeroDeclension {
-    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
-        if let Some(decl) = self.as_option() {
-            decl.fmt_to(dst)
-        } else {
-            dst[0] = b'0';
-            unsafe { str::from_utf8_unchecked(dst.first_chunk::<1>().unwrap()) }
-        }
+        fmt_declension_any(dst, self.stem_type._into(), self.flags, self.stress.abbr())
     }
 }
 
@@ -128,20 +81,10 @@ impl std::fmt::Display for AdjectiveDeclension {
         self.fmt_to(&mut [0; DECLENSION_MAX_LEN]).fmt(f)
     }
 }
-impl std::fmt::Display for Declension {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.fmt_to(&mut [0; DECLENSION_MAX_LEN]).fmt(f)
-    }
-}
-impl std::fmt::Display for MaybeZeroDeclension {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.fmt_to(&mut [0; DECLENSION_MAX_LEN]).fmt(f)
-    }
-}
 
 #[cfg(test)]
 mod tests {
-    use crate::{categories::*, declension::*, stress::*};
+    use crate::{declension::*, stress::*};
 
     #[test]
     fn fmt() {
@@ -150,7 +93,6 @@ mod tests {
                 stem_type: NounStemType::Type4,
                 flags: DeclensionFlags::empty(),
                 stress: NounStress::B,
-                override_gender: None,
             }
             .to_string(),
             "4b",
@@ -160,20 +102,18 @@ mod tests {
                 stem_type: NounStemType::Type7,
                 flags: DeclensionFlags::STAR | DeclensionFlags::CIRCLED_ONE,
                 stress: NounStress::Bp,
-                override_gender: Some(GenderAnimacy::FeminineAnimate),
             }
             .to_string(),
-            "жо 7*b′①",
+            "7*b′①",
         );
         assert_eq!(
             NounDeclension {
                 stem_type: NounStemType::Type8,
                 flags: DeclensionFlags::all(),
                 stress: NounStress::Fpp,
-                override_gender: Some(GenderAnimacy::NeuterAnimate),
             }
             .to_string(),
-            "со 8°*f″①②③, ё",
+            "8°*f″①②③, ё",
         );
 
         assert_eq!(
@@ -183,7 +123,7 @@ mod tests {
                 stress: PronounStress::A,
             }
             .to_string(),
-            "мс 1*a",
+            "1*a",
         );
         assert_eq!(
             PronounDeclension {
@@ -192,7 +132,7 @@ mod tests {
                 stress: PronounStress::F,
             }
             .to_string(),
-            "мс 6°*f①②③, ё",
+            "6°*f①②③, ё",
         );
 
         assert_eq!(
@@ -202,7 +142,7 @@ mod tests {
                 stress: AdjectiveStress::B,
             }
             .to_string(),
-            "п 1b",
+            "1b",
         );
         assert_eq!(
             AdjectiveDeclension {
@@ -213,7 +153,7 @@ mod tests {
                 stress: AdjectiveStress::Ap,
             }
             .to_string(),
-            "п 4*a′①②",
+            "4*a′①②",
         );
         assert_eq!(
             AdjectiveDeclension {
@@ -222,7 +162,7 @@ mod tests {
                 stress: AdjectiveStress::A_Cpp,
             }
             .to_string(),
-            "п 7°*a/c″①②③, ё",
+            "7°*a/c″①②③, ё",
         );
     }
 }
