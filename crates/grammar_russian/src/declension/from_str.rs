@@ -1,8 +1,8 @@
 use crate::{
     categories::GenderAnimacy,
     declension::{
-        AdjectiveDeclension, AnyStemType, Declension, DeclensionFlags, NounDeclension,
-        PronounDeclension,
+        AdjectiveDeclension, AnyStemType, Declension, DeclensionFlags, MaybeZeroDeclension,
+        NounDeclension, PronounDeclension,
     },
     letters,
     stress::{AnyDualStress, ParseStressError},
@@ -179,6 +179,15 @@ impl const PartialParse for Declension {
         })
     }
 }
+impl const PartialParse for MaybeZeroDeclension {
+    fn partial_parse(parser: &mut UnsafeParser) -> Result<Self> {
+        Ok(if parser.skip('0') {
+            Self::ZERO
+        } else {
+            const_try!(Declension::partial_parse(parser))._into()
+        })
+    }
+}
 
 impl std::str::FromStr for NounDeclension {
     type Err = ParseDeclensionError;
@@ -199,6 +208,12 @@ impl std::str::FromStr for AdjectiveDeclension {
     }
 }
 impl std::str::FromStr for Declension {
+    type Err = ParseDeclensionError;
+    fn from_str(s: &str) -> Result<Self> {
+        Self::from_str_or(s, Error::Invalid)
+    }
+}
+impl std::str::FromStr for MaybeZeroDeclension {
     type Err = ParseDeclensionError;
     fn from_str(s: &str) -> Result<Self> {
         Self::from_str_or(s, Error::Invalid)

@@ -1,7 +1,7 @@
 use crate::{
     declension::{
-        AdjectiveDeclension, AnyStemType, Declension, DeclensionFlags, NounDeclension,
-        PronounDeclension,
+        AdjectiveDeclension, AnyStemType, Declension, DeclensionFlags, MaybeZeroDeclension,
+        NounDeclension, PronounDeclension,
     },
     stress::AnyDualStress,
     util::{UnsafeBuf, const_traits::*},
@@ -14,89 +14,105 @@ use crate::{
 pub const DECLENSION_MAX_LEN: usize = 29;
 pub const DECLENSION_MAX_CHARS: usize = 16;
 
+const fn fmt_declension_body(
+    stem_type: AnyStemType,
+    flags: DeclensionFlags,
+    stress: AnyDualStress,
+    dst: &mut UnsafeBuf,
+) {
+    dst.push_byte(stem_type.to_ascii_digit());
+
+    if flags.has_any_leading_flags() {
+        if flags.has_circle() {
+            dst.push('°');
+        }
+        if flags.has_star() {
+            dst.push('*');
+        }
+    }
+
+    let stress_len = stress.fmt_to(dst.chunk()).len();
+    dst.forward(stress_len);
+
+    if flags.has_any_trailing_flags() {
+        if flags.has_circled_one() {
+            dst.push('①');
+        }
+        if flags.has_circled_two() {
+            dst.push('②');
+        }
+        if flags.has_circled_three() {
+            dst.push('③');
+        }
+        if flags.has_alternating_yo() {
+            dst.push_str(", ё");
+        }
+    }
+}
+
+impl NounDeclension {
+    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
+        let mut dst = UnsafeBuf::new(dst);
+        if let Some(gender_animacy) = self.override_gender {
+            dst.push_str(gender_animacy.abbr_zaliznyak());
+            dst.push(' ');
+        }
+        fmt_declension_body(self.stem_type._into(), self.flags, self.stress._into(), &mut dst);
+        dst.finish()
+    }
+}
+impl PronounDeclension {
+    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
+        let mut dst = UnsafeBuf::new(dst);
+        fmt_declension_body(self.stem_type._into(), self.flags, self.stress._into(), &mut dst);
+        dst.finish()
+    }
+}
+impl AdjectiveDeclension {
+    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
+        let mut dst = UnsafeBuf::new(dst);
+        fmt_declension_body(self.stem_type._into(), self.flags, self.stress._into(), &mut dst);
+        dst.finish()
+    }
+}
 impl Declension {
     pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
         let mut dst = UnsafeBuf::new(dst);
 
-        let (stem_type, stress, flags): (AnyStemType, AnyDualStress, DeclensionFlags);
-
-        match self {
+        let info = match self {
             Self::Noun(decl) => {
                 if let Some(gender_animacy) = decl.override_gender {
                     dst.push_str(gender_animacy.abbr_zaliznyak());
                     dst.push(' ');
                 }
-                stem_type = decl.stem_type._into();
-                stress = decl.stress._into();
-                flags = decl.flags;
+                (decl.stem_type._into(), decl.flags, decl.stress._into())
             },
             Self::Pronoun(decl) => {
                 dst.push_str("мс ");
-                stem_type = decl.stem_type._into();
-                stress = decl.stress._into();
-                flags = decl.flags;
+                (decl.stem_type._into(), decl.flags, decl.stress._into())
             },
             Self::Adjective(decl) => {
                 dst.push_str("п ");
-                stem_type = decl.stem_type._into();
-                stress = decl.stress.abbr();
-                flags = decl.flags;
+                (decl.stem_type._into(), decl.flags, decl.stress._into())
             },
         };
 
-        dst.push_byte(stem_type.to_ascii_digit());
-
-        if flags.has_any_leading_flags() {
-            if flags.has_circle() {
-                dst.push('°');
-            }
-            if flags.has_star() {
-                dst.push('*');
-            }
-        }
-
-        let stress_len = stress.fmt_to(dst.chunk()).len();
-        dst.forward(stress_len);
-
-        if flags.has_any_trailing_flags() {
-            if flags.has_circled_one() {
-                dst.push('①');
-            }
-            if flags.has_circled_two() {
-                dst.push('②');
-            }
-            if flags.has_circled_three() {
-                dst.push('③');
-            }
-            if flags.has_alternating_yo() {
-                dst.push_str(", ё");
-            }
-        }
+        fmt_declension_body(info.0, info.1, info.2, &mut dst);
 
         dst.finish()
     }
 }
-impl NounDeclension {
+impl MaybeZeroDeclension {
     pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
-        Declension::Noun(self).fmt_to(dst)
-    }
-}
-impl PronounDeclension {
-    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
-        Declension::Pronoun(self).fmt_to(dst)
-    }
-}
-impl AdjectiveDeclension {
-    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
-        Declension::Adjective(self).fmt_to(dst)
+        if let Some(decl) = self.as_option() {
+            decl.fmt_to(dst)
+        } else {
+            dst[0] = b'0';
+            unsafe { str::from_utf8_unchecked(dst.first_chunk::<1>().unwrap()) }
+        }
     }
 }
 
-impl std::fmt::Display for Declension {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        self.fmt_to(&mut [0; DECLENSION_MAX_LEN]).fmt(f)
-    }
-}
 impl std::fmt::Display for NounDeclension {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_to(&mut [0; DECLENSION_MAX_LEN]).fmt(f)
@@ -108,6 +124,16 @@ impl std::fmt::Display for PronounDeclension {
     }
 }
 impl std::fmt::Display for AdjectiveDeclension {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.fmt_to(&mut [0; DECLENSION_MAX_LEN]).fmt(f)
+    }
+}
+impl std::fmt::Display for Declension {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.fmt_to(&mut [0; DECLENSION_MAX_LEN]).fmt(f)
+    }
+}
+impl std::fmt::Display for MaybeZeroDeclension {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_to(&mut [0; DECLENSION_MAX_LEN]).fmt(f)
     }

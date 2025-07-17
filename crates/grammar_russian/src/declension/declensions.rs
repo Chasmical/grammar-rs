@@ -133,6 +133,11 @@ pub struct MaybeZeroDeclension(Option<Declension>);
 // FIXME(const-hack): Replace `matches!()` and `if let Some(x)` with `.map(|x| ...)` everywhere below.
 
 impl MaybeZeroDeclension {
+    pub const ZERO: Self = Self(None);
+
+    pub const fn new(value: Option<Declension>) -> Self {
+        Self(value)
+    }
     pub const fn as_option(self) -> Option<Declension> {
         self.0
     }
