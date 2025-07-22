@@ -89,13 +89,28 @@ pub(crate) trait _Result<T, E> {
     fn _unwrap(self) -> T;
 }
 impl<T, E: std::fmt::Debug> const _Result<T, E> for Result<T, E>
-where Result<T, E>: Copy
+where Result<T, E>: ~const std::marker::Destruct
 {
     fn _unwrap(self) -> T {
-        match self {
-            Ok(x) => x,
-            Err(_) => panic!("called `_Result::_unwrap()` on an `Err` value"),
-        }
+        if let Ok(x) = self { x } else { panic!("called `_Result::_unwrap()` on an `Err` value") }
+    }
+}
+
+// FIXME(const-hack): Remove these when Option::unwrap/ok_or are constified.
+
+#[const_trait]
+pub(crate) trait _Option<T> {
+    fn _unwrap(self) -> T;
+    fn _ok_or<E: ~const std::marker::Destruct>(self, err: E) -> Result<T, E>;
+}
+impl<T> const _Option<T> for Option<T>
+where Option<T>: ~const std::marker::Destruct
+{
+    fn _unwrap(self) -> T {
+        if let Some(x) = self { x } else { panic!("called `_Option::_unwrap()` on a `None` value") }
+    }
+    fn _ok_or<E: ~const std::marker::Destruct>(self, err: E) -> Result<T, E> {
+        if let Some(x) = self { Ok(x) } else { Err(err) }
     }
 }
 
@@ -105,17 +120,14 @@ where Result<T, E>: Copy
 pub(crate) trait _Tryable<T, E> {
     fn _as_result(self) -> Result<T, E>;
 }
-impl<T: Copy, E> const _Tryable<T, E> for Result<T, E> {
+impl<T: ~const std::marker::Destruct, E> const _Tryable<T, E> for Result<T, E> {
     fn _as_result(self) -> Result<T, E> {
         self
     }
 }
-impl<T: Copy> const _Tryable<T, ()> for Option<T> {
+impl<T: ~const std::marker::Destruct> const _Tryable<T, ()> for Option<T> {
     fn _as_result(self) -> Result<T, ()> {
-        match self {
-            Some(x) => Ok(x),
-            None => Err(()),
-        }
+        if let Some(x) = self { Ok(x) } else { Err(()) }
     }
 }
 
@@ -124,7 +136,7 @@ macro_rules! const_try {
     ($expr:expr, $err_fn:path) => (const_try!($expr, x => $err_fn(x)));
     ($expr:expr, $err_expr:expr) => (const_try!($expr, _x => $err_expr));
     ($expr:expr, $err:ident => $err_expr:expr) => ({
-        match $crate::util::_Tryable::<_, _>::_as_result($expr) {
+        match $crate::util::_Tryable::_as_result($expr) {
             Ok(x) => x,
             Err($err) => return Err($err_expr),
         }

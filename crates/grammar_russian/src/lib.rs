@@ -1,4 +1,5 @@
 #![feature(const_trait_impl)]
+#![feature(const_destruct)]
 #![feature(core_intrinsics)]
 #![feature(const_eval_select)]
 #![cfg_attr(test, feature(test))]
