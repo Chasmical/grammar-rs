@@ -3,7 +3,7 @@ use crate::{
         AdjectiveDeclension, AnyStemType, DeclensionFlags, NounDeclension, PronounDeclension,
     },
     stress::{AnyDualStress, ParseStressError},
-    util::{PartialParse, UnsafeParser, const_traits::*, utf8_bytes},
+    util::{PartialParse, UnsafeParser, const_traits::*},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -30,47 +30,11 @@ const fn parse_declension_any(
 
     let mut flags = DeclensionFlags::empty();
 
-    if parser.skip('°') {
-        flags = flags.union(DeclensionFlags::CIRCLE);
-    }
-    if parser.skip('*') {
-        flags = flags.union(DeclensionFlags::STAR);
-    }
+    DeclensionFlags::partial_parse_leading(&mut flags, parser);
 
     let stress = const_try!(AnyDualStress::partial_parse(parser), Error::InvalidStress);
 
-    const CircledOne_Bytes: [u8; 3] = utf8_bytes!('①');
-    const CircledTwo_Bytes: [u8; 3] = utf8_bytes!('②');
-    const CircledThree_Bytes: [u8; 3] = utf8_bytes!('③');
-
-    loop {
-        match parser.peek::<3>() {
-            Some(&CircledOne_Bytes | &[b'(', b'1', b')']) => {
-                if flags.intersects(DeclensionFlags::CIRCLED_ONE) {
-                    return Err(Error::InvalidFlags);
-                }
-                flags = flags.union(DeclensionFlags::CIRCLED_ONE);
-            },
-            Some(&CircledTwo_Bytes | &[b'(', b'2', b')']) => {
-                if flags.intersects(DeclensionFlags::CIRCLED_TWO) {
-                    return Err(Error::InvalidFlags);
-                }
-                flags = flags.union(DeclensionFlags::CIRCLED_TWO);
-            },
-            Some(&CircledThree_Bytes | &[b'(', b'3', b')']) => {
-                if flags.intersects(DeclensionFlags::CIRCLED_THREE) {
-                    return Err(Error::InvalidFlags);
-                }
-                flags = flags.union(DeclensionFlags::CIRCLED_THREE);
-            },
-            _ => break,
-        };
-        parser.forward(3);
-    }
-
-    if parser.skip_str(", ё") {
-        flags = flags.union(DeclensionFlags::ALTERNATING_YO);
-    }
+    const_try!(DeclensionFlags::partial_parse_trailing(&mut flags, parser));
 
     Ok((stem_type, flags, stress))
 }

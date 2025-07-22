@@ -20,32 +20,12 @@ const fn fmt_declension_any(
 
     dst.push_byte(stem_type.to_ascii_digit());
 
-    if flags.has_any_leading_flags() {
-        if flags.has_circle() {
-            dst.push('°');
-        }
-        if flags.has_star() {
-            dst.push('*');
-        }
-    }
+    flags.fmt_leading_to_buf(&mut dst);
 
     let stress_len = stress.fmt_to(dst.chunk()).len();
     dst.forward(stress_len);
 
-    if flags.has_any_trailing_flags() {
-        if flags.has_circled_one() {
-            dst.push('①');
-        }
-        if flags.has_circled_two() {
-            dst.push('②');
-        }
-        if flags.has_circled_three() {
-            dst.push('③');
-        }
-        if flags.has_alternating_yo() {
-            dst.push_str(", ё");
-        }
-    }
+    flags.fmt_trailing_to_buf(&mut dst);
 
     dst.finish()
 }
