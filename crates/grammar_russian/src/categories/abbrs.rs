@@ -2,7 +2,6 @@ use super::{
     Animacy, Case, CaseEx, Gender, GenderAnimacy, GenderEx, GenderExAnimacy, Number,
     traits::{HasAnimacy, HasGender, HasGenderEx, HasNumber},
 };
-use crate::util::*;
 
 // Case[Ex] abbreviations
 impl CaseEx {
@@ -67,13 +66,13 @@ impl Case {
     pub const PRP: Self = Self::Prepositional;
 
     pub const fn abbr_upper(self) -> &'static str {
-        CaseEx::_from(self).abbr_upper()
+        CaseEx::from(self).abbr_upper()
     }
     pub const fn abbr_lower(self) -> &'static str {
-        CaseEx::_from(self).abbr_lower()
+        CaseEx::from(self).abbr_lower()
     }
     pub const fn abbr_smcp(self) -> &'static str {
-        CaseEx::_from(self).abbr_smcp()
+        CaseEx::from(self).abbr_smcp()
     }
 }
 
@@ -116,13 +115,13 @@ impl Gender {
     pub const FEM: Self = Self::Feminine;
 
     pub const fn abbr_upper(self) -> &'static str {
-        GenderEx::_from(self).abbr_upper()
+        GenderEx::from(self).abbr_upper()
     }
     pub const fn abbr_lower(self) -> &'static str {
-        GenderEx::_from(self).abbr_lower()
+        GenderEx::from(self).abbr_lower()
     }
     pub const fn abbr_smcp(self) -> &'static str {
-        GenderEx::_from(self).abbr_smcp()
+        GenderEx::from(self).abbr_smcp()
     }
 }
 
@@ -188,7 +187,7 @@ impl GenderAnimacy {
     pub const FEM_AN: Self = Self::FeminineAnimate;
 
     pub const fn abbr_zaliznyak(self) -> &'static str {
-        GenderExAnimacy::_from(self).abbr_zaliznyak()
+        GenderExAnimacy::from(self).abbr_zaliznyak()
     }
 }
 

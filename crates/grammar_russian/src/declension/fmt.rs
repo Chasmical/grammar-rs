@@ -5,7 +5,7 @@ use crate::{
         flags::{DECLENSION_FLAGS_MAX_CHARS, DECLENSION_FLAGS_MAX_LEN},
     },
     stress::{AnyDualStress, DUAL_STRESS_MAX_CHARS, DUAL_STRESS_MAX_LEN},
-    util::{UnsafeBuf, const_traits::*},
+    util::UnsafeBuf,
 };
 
 // Longest form (w/ prefix): п 7°*f″/f″①②③, ё (29 bytes, 16 chars)
@@ -35,17 +35,17 @@ const fn fmt_declension_any(
 
 impl NounDeclension {
     pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &mut str {
-        fmt_declension_any(dst, self.stem_type._into(), self.flags, self.stress._into())
+        fmt_declension_any(dst, self.stem_type.into(), self.flags, self.stress.into())
     }
 }
 impl PronounDeclension {
     pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &mut str {
-        fmt_declension_any(dst, self.stem_type._into(), self.flags, self.stress._into())
+        fmt_declension_any(dst, self.stem_type.into(), self.flags, self.stress.into())
     }
 }
 impl AdjectiveDeclension {
     pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &mut str {
-        fmt_declension_any(dst, self.stem_type._into(), self.flags, self.stress.abbr())
+        fmt_declension_any(dst, self.stem_type.into(), self.flags, self.stress.abbr())
     }
 }
 impl Declension {
@@ -55,15 +55,15 @@ impl Declension {
         let (stem_type, flags, stress) = match self {
             Self::Noun(decl) => {
                 // no prefix for nouns
-                (decl.stem_type._into(), decl.flags, decl.stress._into())
+                (decl.stem_type.into(), decl.flags, decl.stress.into())
             },
             Self::Pronoun(decl) => {
                 dst.push_str("мс ");
-                (decl.stem_type._into(), decl.flags, decl.stress._into())
+                (decl.stem_type.into(), decl.flags, decl.stress.into())
             },
             Self::Adjective(decl) => {
                 dst.push_str("п ");
-                (decl.stem_type._into(), decl.flags, decl.stress._into())
+                (decl.stem_type.into(), decl.flags, decl.stress.into())
             },
         };
 

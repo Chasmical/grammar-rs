@@ -5,7 +5,6 @@ use crate::{
         AdjectiveFullStress, AdjectiveShortStress, AdjectiveStress, AnyDualStress, AnyStress,
         NounStress, PronounStress, VerbPastStress, VerbPresentStress, VerbStress,
     },
-    util::const_traits::*,
 };
 
 impl AnyStress {
@@ -52,18 +51,19 @@ impl AnyStress {
 
 impl AnyDualStress {
     pub const fn abbr_adj(self) -> AnyDualStress {
-        if let Some(abbr) = self.try_abbr_adj() { abbr._into() } else { self }
+        self.try_abbr_adj().map_or(self, AnyDualStress::from)
     }
     pub const fn try_abbr_adj(self) -> Option<AnyStress> {
-        if let Some(alt) = self.alt {
-            if !self.main.has_any_primes() && self.main as u8 == alt.unprime() as u8 {
-                return Some(alt);
-            }
+        if let Some(alt) = self.alt
+            && !self.main.has_any_primes()
+            && self.main as u8 == alt.unprime() as u8
+        {
+            return Some(alt);
         }
         None
     }
     pub const fn abbr_verb(self) -> AnyDualStress {
-        if let Some(abbr) = self.try_abbr_verb() { abbr._into() } else { self }
+        self.try_abbr_verb().map_or(self, AnyDualStress::from)
     }
     pub const fn try_abbr_verb(self) -> Option<AnyStress> {
         match self.alt {
@@ -74,7 +74,7 @@ impl AnyDualStress {
 }
 impl AdjectiveStress {
     pub const fn abbr(self) -> AnyDualStress {
-        if let Some(abbr) = self.try_abbr() { abbr._into() } else { self._into() }
+        if let Some(abbr) = self.try_abbr() { abbr.into() } else { self.into() }
     }
     pub const fn try_abbr(self) -> Option<AdjectiveShortStress> {
         match self {
@@ -88,7 +88,7 @@ impl AdjectiveStress {
 }
 impl VerbStress {
     pub const fn abbr(self) -> AnyDualStress {
-        if let Some(abbr) = self.try_abbr() { abbr._into() } else { self._into() }
+        if let Some(abbr) = self.try_abbr() { abbr.into() } else { self.into() }
     }
     pub const fn try_abbr(self) -> Option<VerbPresentStress> {
         match self.past {
@@ -103,7 +103,7 @@ impl AnyDualStress {
         if let Some(alt) = self.alt { (self.main, alt) } else { (self.main.unprime(), self.main) }
     }
     pub const fn normalize_verb(self) -> (AnyStress, AnyStress) {
-        (self.main, if let Some(alt) = self.alt { alt } else { AnyStress::A })
+        (self.main, self.alt.unwrap_or(AnyStress::A))
     }
 }
 

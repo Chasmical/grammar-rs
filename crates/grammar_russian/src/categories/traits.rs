@@ -1,29 +1,23 @@
 use super::{Animacy, Case, CaseEx, Gender, GenderAnimacy, GenderEx, GenderExAnimacy, Number};
-use crate::util::*;
 
 // Traits providing CaseEx and Case values
-#[const_trait]
-pub trait HasCaseEx {
+pub const trait HasCaseEx {
     fn case_ex(&self) -> CaseEx;
 }
-#[const_trait]
-pub trait HasCase {
+pub const trait HasCase {
     fn case(&self) -> Case;
 }
 
 // Traits providing GenderEx and Gender values
-#[const_trait]
-pub trait HasGenderEx {
+pub const trait HasGenderEx {
     fn gender_ex(&self) -> GenderEx;
 }
-#[const_trait]
-pub trait HasGender {
+pub const trait HasGender {
     fn gender(&self) -> Gender;
 }
 
 // Traits providing Animacy and Number values
-#[const_trait]
-pub trait HasAnimacy {
+pub const trait HasAnimacy {
     fn animacy(&self) -> Animacy;
 
     fn is_animate(&self) -> bool {
@@ -33,8 +27,7 @@ pub trait HasAnimacy {
         matches!(self.animacy(), Animacy::Inanimate)
     }
 }
-#[const_trait]
-pub trait HasNumber {
+pub const trait HasNumber {
     fn number(&self) -> Number;
 
     fn is_singular(&self) -> bool {
@@ -100,14 +93,14 @@ impl const HasAnimacy for GenderAnimacy {
 }
 
 // Any type implementing HasCase implements HasCaseEx as well
-impl<T: ~const HasCase> const HasCaseEx for T {
+impl<T: [const] HasCase> const HasCaseEx for T {
     fn case_ex(&self) -> CaseEx {
-        self.case()._into()
+        self.case().into()
     }
 }
 // Any type implementing HasGender implements HasGenderEx as well
-impl<T: ~const HasGender> const HasGenderEx for T {
+impl<T: [const] HasGender> const HasGenderEx for T {
     fn gender_ex(&self) -> GenderEx {
-        self.gender()._into()
+        self.gender().into()
     }
 }

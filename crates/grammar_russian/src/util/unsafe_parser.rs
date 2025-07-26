@@ -1,4 +1,3 @@
-use super::slice_eq;
 use crate::Letter;
 
 pub(crate) struct UnsafeParser<'a> {
@@ -8,9 +7,8 @@ pub(crate) struct UnsafeParser<'a> {
 
 impl<'a> UnsafeParser<'a> {
     pub const fn new(s: &'a str) -> Self {
-        let start = unsafe { &*s.as_ptr() };
-        let end = unsafe { &*(start as *const u8).add(s.len()) };
-        UnsafeParser { start, end }
+        let r = s.as_bytes().as_ptr_range();
+        Self { start: unsafe { &*r.start }, end: unsafe { &*r.end } }
     }
 
     pub const fn remaining_len(&self) -> usize {
@@ -60,7 +58,7 @@ impl<'a> UnsafeParser<'a> {
         // FIXME(const-hack): Replace with `self.remaining().starts_with(bytes)`.
         if self.remaining_len() >= bytes.len() {
             let peeked = unsafe { std::slice::from_raw_parts(self.start, bytes.len()) };
-            if slice_eq(peeked, bytes) {
+            if peeked == bytes {
                 self.forward(bytes.len());
                 return true;
             }
@@ -75,14 +73,13 @@ impl<'a> UnsafeParser<'a> {
     }
 }
 
-#[const_trait]
-pub trait PartialParse: std::str::FromStr + Sized {
+pub const trait PartialParse: std::str::FromStr + Sized {
     fn partial_parse(parser: &mut UnsafeParser) -> Result<Self, Self::Err>;
 
     fn from_str_or(s: &str, default_err: Self::Err) -> Result<Self, Self::Err>
     where
-        Self::Err: Copy,
-        Result<Self, Self::Err>: Copy,
+        Self::Err: [const] std::marker::Destruct,
+        Result<Self, Self::Err>: [const] std::marker::Destruct,
     {
         let mut parser = UnsafeParser::new(s);
 

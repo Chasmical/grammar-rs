@@ -1,4 +1,4 @@
-use crate::util::{const_traits::*, enum_conversion};
+use crate::util::enum_conversion;
 use thiserror::Error;
 
 macro_rules! impl_stem_type {
@@ -48,7 +48,7 @@ macro_rules! impl_stem_type {
             type Err = $E;
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 if let [ch] = s.as_bytes() {
-                    Self::from_ascii_digit(*ch)._ok_or(Self::Err {})
+                    Self::from_ascii_digit(*ch).ok_or(Self::Err {})
                 } else {
                     Err(Self::Err {})
                 }

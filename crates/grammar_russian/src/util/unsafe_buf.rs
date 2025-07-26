@@ -1,13 +1,12 @@
 pub(crate) struct UnsafeBuf<'a> {
-    start: &'a mut u8,
+    start: &'a u8,
     end: &'a mut u8,
 }
 
 impl<'a> UnsafeBuf<'a> {
     pub const fn new<const N: usize>(dst: &'a mut [u8; N]) -> Self {
-        let start = dst.first_mut().unwrap();
-        let end = unsafe { &mut *(start as *mut u8) };
-        Self { start, end }
+        let start = dst.as_mut_ptr();
+        Self { start: unsafe { &*start }, end: unsafe { &mut *start } }
     }
 
     pub const fn push_bytes(&mut self, bytes: &[u8]) {
@@ -32,10 +31,17 @@ impl<'a> UnsafeBuf<'a> {
     pub const fn forward(&mut self, distance: usize) {
         self.end = unsafe { &mut *(self.end as *mut u8).add(distance) };
     }
+    pub const fn push_fmt<const N: usize>(
+        &mut self,
+        format: impl [const] FnOnce(&'a mut [u8; N]) -> &'a str,
+    ) {
+        let len = format(self.chunk()).len();
+        self.forward(len);
+    }
 
     pub const fn finish(self) -> &'a mut str {
         unsafe {
-            let start = self.start as *mut u8;
+            let start = self.start as *const u8 as *mut u8;
             let len = (self.end as *mut u8).offset_from_unsigned(start);
             str::from_utf8_unchecked_mut(std::slice::from_raw_parts_mut(start, len))
         }

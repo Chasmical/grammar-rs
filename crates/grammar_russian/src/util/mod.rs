@@ -12,26 +12,26 @@ macro_rules! enum_conversion {
     (
         $from:ty => <= $to:ty { $($variant:ident,)* }
     ) => (
-        $crate::util::impl_const_From!(<$from> for $to {
+        impl const From<$from> for $to {
             fn from(value: $from) -> Self {
                 match value { $(<$from>::$variant => <$to>::$variant,)* }
             }
-        });
-        $crate::util::impl_const_From!(<$to> for $from {
+        }
+        impl const From<$to> for $from {
             fn from(value: $to) -> Self {
                 match value { $( <$to>::$variant => <$from>::$variant, )* }
             }
-        });
+        }
     );
     (
         $from:ty => $to:ty [<= $err:ty] { $($variant:ident,)* }
     ) => (
-        $crate::util::impl_const_From!(<$from> for $to {
+        impl const From<$from> for $to {
             fn from(value: $from) -> Self {
                 match value { $(<$from>::$variant => <$to>::$variant,)* }
             }
-        });
-        $crate::util::impl_const_TryFrom!(<$to> for $from {
+        }
+        impl const TryFrom<$to> for $from {
             type Error = $err;
             fn try_from(value: $to) -> Result<Self, Self::Error> {
                 Ok(match value {
@@ -39,12 +39,11 @@ macro_rules! enum_conversion {
                     _ => return Err(Self::Error {}),
                 })
             }
-        });
+        }
     );
 }
 
-#[const_trait]
-pub(crate) trait ToUtf8 {
+pub(crate) const trait ToUtf8 {
     fn _len_utf8(&self) -> usize;
     fn _encode_utf8(&self, dst: &mut [u8]);
 }

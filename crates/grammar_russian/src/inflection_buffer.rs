@@ -14,26 +14,21 @@ impl InflectionBuffer {
         Self { dst, stem_len: stem.len() }
     }
 
-    const fn range(&self, start: usize, len: usize) -> &[u8] {
-        let ptr = unsafe { self.dst.as_ptr().add(start) };
-        unsafe { std::slice::from_raw_parts(ptr, len) }
-    }
-    const fn range_mut(&mut self, start: usize, len: usize) -> &mut [u8] {
-        let ptr = unsafe { self.dst.as_mut_ptr().add(start) };
-        unsafe { std::slice::from_raw_parts_mut(ptr, len) }
-    }
-
     pub const fn stem(&self) -> &[Letter] {
-        Letter::from_bytes(self.range(0, self.stem_len))
+        // FIXME(const-hack): Remove `as_slice()` when Deref for Vec is constified.
+        Letter::from_bytes(self.dst.as_slice().get(..self.stem_len).unwrap())
     }
     pub const fn stem_mut(&mut self) -> &mut [Letter] {
-        Letter::from_bytes_mut(self.range_mut(0, self.stem_len))
+        // FIXME(const-hack): Remove `as_mut_slice()` when Deref for Vec is constified.
+        Letter::from_bytes_mut(self.dst.as_mut_slice().get_mut(..self.stem_len).unwrap())
     }
     pub const fn ending(&self) -> &[Letter] {
-        Letter::from_bytes(self.range(self.stem_len, self.dst.len() - self.stem_len))
+        // FIXME(const-hack): Remove `as_slice()` when Deref for Vec is constified.
+        Letter::from_bytes(self.dst.as_slice().get(self.stem_len..).unwrap())
     }
     pub const fn ending_mut(&mut self) -> &mut [Letter] {
-        Letter::from_bytes_mut(self.range_mut(self.stem_len, self.dst.len() - self.stem_len))
+        // FIXME(const-hack): Remove `as_mut_slice()` when Deref for Vec is constified.
+        Letter::from_bytes_mut(self.dst.as_mut_slice().get_mut(self.stem_len..).unwrap())
     }
 
     pub fn append_to_ending(&mut self, append: &str) {
@@ -64,6 +59,7 @@ impl InflectionBuffer {
     }
 
     pub const fn as_str(&self) -> &str {
+        // FIXME(const-hack): Remove `as_slice()` when Deref for Vec is constified.
         unsafe { str::from_utf8_unchecked(self.dst.as_slice()) }
     }
 }

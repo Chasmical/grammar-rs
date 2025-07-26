@@ -2,7 +2,6 @@ use super::{
     Animacy, Case, CaseEx, Gender, GenderAnimacy, GenderEx, GenderExAnimacy, Number,
     traits::{HasAnimacy, HasGender, HasGenderEx},
 };
-use crate::util::*;
 
 impl CaseEx {
     pub const fn normalize_with(self, number: Number) -> (Case, Number) {
@@ -15,7 +14,8 @@ impl CaseEx {
     }
 }
 impl Case {
-    pub const fn acc_is_nom(self, animacy: impl ~const HasAnimacy + Copy) -> Option<bool> {
+    pub const fn acc_is_nom<A>(self, animacy: A) -> Option<bool>
+    where A: [const] HasAnimacy + [const] std::marker::Destruct {
         match self {
             Self::Nominative => Some(true),
             Self::Genitive => Some(false),
@@ -23,17 +23,20 @@ impl Case {
             _ => None,
         }
     }
-    pub const fn is_nom_or_acc_inan(self, animacy: impl ~const HasAnimacy + Copy) -> bool {
-        matches!(self.acc_is_nom(animacy), Some(true))
+    pub const fn is_nom_or_acc_inan<A>(self, animacy: A) -> bool
+    where A: [const] HasAnimacy + [const] std::marker::Destruct {
+        self.acc_is_nom(animacy) == Some(true)
     }
-    pub const fn is_gen_or_acc_an(self, animacy: impl ~const HasAnimacy + Copy) -> bool {
-        matches!(self.acc_is_nom(animacy), Some(false))
+    pub const fn is_gen_or_acc_an<A>(self, animacy: A) -> bool
+    where A: [const] HasAnimacy + [const] std::marker::Destruct {
+        self.acc_is_nom(animacy) == Some(false)
     }
 }
 
 impl GenderEx {
     pub const fn normalize(self) -> Gender {
-        if let Ok(x) = self._try_into() { x } else { Gender::Feminine }
+        // FIXME(const-hack): Replace `try_into()` with `unwrap_or()` when it's constified.
+        if let Ok(x) = self.try_into() { x } else { Gender::Feminine }
     }
 }
 
@@ -59,16 +62,16 @@ impl GenderAnimacy {
 }
 
 // Compose/decompose Gender[Ex]Animacy values
-impl_const_From!(<(GenderEx, Animacy)> for GenderExAnimacy {
+impl const From<(GenderEx, Animacy)> for GenderExAnimacy {
     fn from(value: (GenderEx, Animacy)) -> Self {
         Self::new(value.0, value.1)
     }
-});
-impl_const_From!(<(Gender, Animacy)> for GenderAnimacy {
+}
+impl const From<(Gender, Animacy)> for GenderAnimacy {
     fn from(value: (Gender, Animacy)) -> Self {
         Self::new(value.0, value.1)
     }
-});
+}
 impl GenderEx {
     pub const fn with_an(self, animacy: Animacy) -> GenderExAnimacy {
         GenderExAnimacy::new(self, animacy)

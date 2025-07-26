@@ -49,12 +49,12 @@ impl const PartialParse for AnyStress {
 impl const PartialParse for AnyDualStress {
     fn partial_parse(parser: &mut UnsafeParser) -> Result<Self, Self::Err> {
         // Parse the main stress
-        let main = const_try!(AnyStress::partial_parse(parser));
+        let main = AnyStress::partial_parse(parser)?;
         let mut alt = None;
 
         // If followed by a '/', parse the alt stress
         if parser.skip('/') {
-            alt = Some(const_try!(AnyStress::partial_parse(parser)));
+            alt = Some(AnyStress::partial_parse(parser)?);
         }
 
         // Construct the dual stress and return

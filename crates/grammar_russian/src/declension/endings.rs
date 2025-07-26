@@ -183,10 +183,9 @@ const fn find_ending_indices(s: &str) -> (u8, u8) {
 }
 const fn get_ending_by_index(index: u8) -> &'static str {
     unsafe {
-        let index = index as usize;
-        let ptr = ENDINGS.as_ptr().add((index & 0x3F) << 1);
-        let slice = std::slice::from_raw_parts(ptr, (index >> 6) << 1);
-        str::from_utf8_unchecked(slice)
+        let start = ((index & 0x3F) << 1) as usize;
+        let end = start + ((index >> 6) << 1) as usize;
+        str::from_utf8_unchecked(ENDINGS.get(start..end).unwrap())
     }
 }
 

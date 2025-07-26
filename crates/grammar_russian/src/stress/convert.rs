@@ -3,7 +3,7 @@ use crate::{
         AdjectiveFullStress, AdjectiveShortStress, AdjectiveStress, AnyDualStress, AnyStress,
         NounStress, PronounStress, VerbPastStress, VerbPresentStress, VerbStress,
     },
-    util::{const_traits::*, enum_conversion},
+    util::{const_traits::const_try, enum_conversion},
 };
 use thiserror::Error;
 
@@ -91,92 +91,87 @@ enum_conversion!(VerbPastStress => AnyStress [<= VerbPastStressError] {
 });
 
 // Convert any simple stresses into AnyDualStress
-impl<T: Into<AnyStress>> From<T> for AnyDualStress {
+impl<T: [const] Into<AnyStress>> const From<T> for AnyDualStress {
     fn from(value: T) -> Self {
         Self::new(value.into(), None)
     }
 }
-impl<T: ~const _Into<AnyStress>> const _From<T> for AnyDualStress {
-    fn _from(value: T) -> Self {
-        Self::new(value._into(), None)
+// Convert AdjectiveStress and VerbStress into AnyDualStress
+impl const From<AdjectiveStress> for AnyDualStress {
+    fn from(value: AdjectiveStress) -> Self {
+        Self::new(value.full.into(), Some(value.short.into()))
     }
 }
-// Convert AdjectiveStress and VerbStress into AnyDualStress
-impl_const_From!(<AdjectiveStress> for AnyDualStress {
-    fn from(value: AdjectiveStress) -> Self {
-        Self::new(value.full._into(), Some(value.short._into()))
-    }
-});
-impl_const_From!(<VerbStress> for AnyDualStress {
+impl const From<VerbStress> for AnyDualStress {
     fn from(value: VerbStress) -> Self {
-        Self::new(value.present._into(), Some(value.past._into()))
+        Self::new(value.present.into(), Some(value.past.into()))
     }
-});
+}
 
 // Try to convert main-only AnyDualStress into simple stresses
-impl_const_TryFrom!(<AnyDualStress> for AnyStress {
+impl const TryFrom<AnyDualStress> for AnyStress {
     type Error = AnyStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
         if value.alt.is_none() { Ok(value.main) } else { Err(Self::Error {}) }
     }
-});
-impl_const_TryFrom!(<AnyDualStress> for NounStress {
+}
+impl const TryFrom<AnyDualStress> for NounStress {
     type Error = NounStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
-        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
+        if value.alt.is_none() { Self::try_from(value.main) } else { Err(Self::Error {}) }
     }
-});
-impl_const_TryFrom!(<AnyDualStress> for PronounStress {
+}
+impl const TryFrom<AnyDualStress> for PronounStress {
     type Error = PronounStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
-        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
+        if value.alt.is_none() { Self::try_from(value.main) } else { Err(Self::Error {}) }
     }
-});
-impl_const_TryFrom!(<AnyDualStress> for AdjectiveFullStress {
+}
+impl const TryFrom<AnyDualStress> for AdjectiveFullStress {
     type Error = AdjectiveFullStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
-        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
+        if value.alt.is_none() { Self::try_from(value.main) } else { Err(Self::Error {}) }
     }
-});
-impl_const_TryFrom!(<AnyDualStress> for AdjectiveShortStress {
+}
+impl const TryFrom<AnyDualStress> for AdjectiveShortStress {
     type Error = AdjectiveShortStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
-        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
+        if value.alt.is_none() { Self::try_from(value.main) } else { Err(Self::Error {}) }
     }
-});
-impl_const_TryFrom!(<AnyDualStress> for VerbPresentStress {
+}
+impl const TryFrom<AnyDualStress> for VerbPresentStress {
     type Error = VerbPresentStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
-        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
+        if value.alt.is_none() { Self::try_from(value.main) } else { Err(Self::Error {}) }
     }
-});
-impl_const_TryFrom!(<AnyDualStress> for VerbPastStress {
+}
+impl const TryFrom<AnyDualStress> for VerbPastStress {
     type Error = VerbPastStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
-        if value.alt.is_none() { Self::_try_from(value.main) } else { Err(Self::Error {}) }
+        if value.alt.is_none() { Self::try_from(value.main) } else { Err(Self::Error {}) }
     }
-});
+}
 
 // Try to convert AnyDualStress to AdjectiveStress and VerbStress
-impl_const_TryFrom!(<AnyDualStress> for AdjectiveStress {
+impl const TryFrom<AnyDualStress> for AdjectiveStress {
     type Error = AdjectiveStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
         let (main, alt) = value.normalize_adj();
 
         Ok(Self::new(
-            const_try!(main._try_into(), Self::Error::Full),
-            const_try!(alt._try_into(), Self::Error::Short),
+            const_try!(main.try_into(), Self::Error::Full),
+            const_try!(alt.try_into(), Self::Error::Short),
         ))
     }
-});
-impl_const_TryFrom!(<AnyDualStress> for VerbStress {
+}
+impl const TryFrom<AnyDualStress> for VerbStress {
     type Error = VerbStressError;
     fn try_from(value: AnyDualStress) -> Result<Self, Self::Error> {
         let (main, alt) = value.normalize_verb();
 
         Ok(Self::new(
-            const_try!(main._try_into(), Self::Error::Present),
-            const_try!(alt._try_into(), Self::Error::Past),
+            const_try!(main.try_into(), Self::Error::Present),
+            const_try!(alt.try_into(), Self::Error::Past),
         ))
     }
-});
+}

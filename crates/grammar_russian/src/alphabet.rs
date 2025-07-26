@@ -70,8 +70,7 @@ impl Letter {
     }
 }
 
-#[const_trait]
-pub trait LetterSliceExt {
+pub const trait LetterSliceExt {
     fn as_bytes(&self) -> &[u8];
     fn as_str(&self) -> &str;
 }

@@ -11,8 +11,7 @@ pub mod aliases {
     define_empty_structs! { Unset, a, b, c, d, e, f, a1, b1, c1, d1, e1, f1, c2, f2 }
 }
 
-#[const_trait]
-pub trait StressConst<T> {
+pub const trait StressConst<T> {
     const STRESS: T;
 }
 
@@ -34,8 +33,7 @@ define_aliases!(VerbPastStress: A a, B b, C c, Cp c1, Cpp c2);
 
 pub struct Builder<Main, Alt>(Main, Alt);
 
-#[const_trait]
-pub trait Build<T> {
+pub const trait Build<T> {
     const RESULT: T;
 }
 

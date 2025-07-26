@@ -25,7 +25,7 @@ const fn parse_declension_any(
     parser: &mut UnsafeParser,
 ) -> Result<(AnyStemType, DeclensionFlags, AnyDualStress), ParseDeclensionError> {
     let stem_type = match parser.read_one() {
-        Some(ch @ b'1'..=b'8') => AnyStemType::from_ascii_digit(*ch)._unwrap(),
+        Some(ch @ b'1'..=b'8') => AnyStemType::from_ascii_digit(*ch).unwrap(),
         _ => return Err(Error::InvalidStemType),
     };
 
@@ -35,40 +35,40 @@ const fn parse_declension_any(
 
     let stress = const_try!(AnyDualStress::partial_parse(parser), Error::InvalidStress);
 
-    const_try!(DeclensionFlags::partial_parse_trailing(&mut flags, parser));
+    DeclensionFlags::partial_parse_trailing(&mut flags, parser)?;
 
     Ok((stem_type, flags, stress))
 }
 
 impl const PartialParse for NounDeclension {
     fn partial_parse(parser: &mut UnsafeParser) -> Result<Self, ParseDeclensionError> {
-        let (stem_type, flags, stress) = const_try!(parse_declension_any(parser));
+        let (stem_type, flags, stress) = parse_declension_any(parser)?;
 
         Ok(NounDeclension {
-            stem_type: const_try!(stem_type._try_into(), Error::IncompatibleStemType {}),
-            stress: const_try!(stress._try_into(), Error::IncompatibleStress {}),
+            stem_type: stem_type.into(),
+            stress: const_try!(stress.try_into(), Error::IncompatibleStress {}),
             flags,
         })
     }
 }
 impl const PartialParse for PronounDeclension {
     fn partial_parse(parser: &mut UnsafeParser) -> Result<Self, ParseDeclensionError> {
-        let (stem_type, flags, stress) = const_try!(parse_declension_any(parser));
+        let (stem_type, flags, stress) = parse_declension_any(parser)?;
 
         Ok(PronounDeclension {
-            stem_type: const_try!(stem_type._try_into(), Error::IncompatibleStemType {}),
-            stress: const_try!(stress._try_into(), Error::IncompatibleStress {}),
+            stem_type: const_try!(stem_type.try_into(), Error::IncompatibleStemType {}),
+            stress: const_try!(stress.try_into(), Error::IncompatibleStress {}),
             flags,
         })
     }
 }
 impl const PartialParse for AdjectiveDeclension {
     fn partial_parse(parser: &mut UnsafeParser) -> Result<Self, ParseDeclensionError> {
-        let (stem_type, flags, stress) = const_try!(parse_declension_any(parser));
+        let (stem_type, flags, stress) = parse_declension_any(parser)?;
 
         Ok(AdjectiveDeclension {
-            stem_type: const_try!(stem_type._try_into(), Error::IncompatibleStemType {}),
-            stress: const_try!(stress._try_into(), Error::IncompatibleStress {}),
+            stem_type: const_try!(stem_type.try_into(), Error::IncompatibleStemType {}),
+            stress: const_try!(stress.try_into(), Error::IncompatibleStress {}),
             flags,
         })
     }
@@ -87,22 +87,22 @@ impl const PartialParse for Declension {
             }
         }
 
-        let (stem_type, flags, stress) = const_try!(parse_declension_any(parser));
+        let (stem_type, flags, stress) = parse_declension_any(parser)?;
 
         Ok(match kind {
             DeclensionKind::Noun => Declension::Noun(NounDeclension {
-                stem_type: const_try!(stem_type._try_into(), Error::IncompatibleStemType {}),
-                stress: const_try!(stress._try_into(), Error::IncompatibleStress {}),
+                stem_type: stem_type.into(),
+                stress: const_try!(stress.try_into(), Error::IncompatibleStress {}),
                 flags,
             }),
             DeclensionKind::Pronoun => Declension::Pronoun(PronounDeclension {
-                stem_type: const_try!(stem_type._try_into(), Error::IncompatibleStemType {}),
-                stress: const_try!(stress._try_into(), Error::IncompatibleStress {}),
+                stem_type: const_try!(stem_type.try_into(), Error::IncompatibleStemType {}),
+                stress: const_try!(stress.try_into(), Error::IncompatibleStress {}),
                 flags,
             }),
             DeclensionKind::Adjective => Declension::Adjective(AdjectiveDeclension {
-                stem_type: const_try!(stem_type._try_into(), Error::IncompatibleStemType {}),
-                stress: const_try!(stress._try_into(), Error::IncompatibleStress {}),
+                stem_type: const_try!(stem_type.try_into(), Error::IncompatibleStemType {}),
+                stress: const_try!(stress.try_into(), Error::IncompatibleStress {}),
                 flags,
             }),
         })
