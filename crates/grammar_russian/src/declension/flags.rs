@@ -83,7 +83,7 @@ impl DeclensionFlags {
             }
         }
     }
-    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_FLAGS_MAX_LEN]) -> &str {
+    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_FLAGS_MAX_LEN]) -> &mut str {
         let mut dst = UnsafeBuf::new(dst);
         self.fmt_leading_to_buf(&mut dst);
         self.fmt_trailing_to_buf(&mut dst);

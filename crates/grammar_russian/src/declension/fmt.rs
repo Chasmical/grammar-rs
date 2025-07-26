@@ -1,21 +1,24 @@
 use crate::{
     declension::{
-        AdjectiveDeclension, AnyStemType, DeclensionFlags, NounDeclension, PronounDeclension,
+        AdjectiveDeclension, AnyStemType, Declension, DeclensionFlags, NounDeclension,
+        PronounDeclension,
+        flags::{DECLENSION_FLAGS_MAX_CHARS, DECLENSION_FLAGS_MAX_LEN},
     },
-    stress::AnyDualStress,
+    stress::{AnyDualStress, DUAL_STRESS_MAX_CHARS, DUAL_STRESS_MAX_LEN},
     util::{UnsafeBuf, const_traits::*},
 };
 
-// Longest form: 8°*f″/f″①②③, ё (26 bytes, 14 chars)
-pub const DECLENSION_MAX_LEN: usize = 26;
-pub const DECLENSION_MAX_CHARS: usize = 14;
+// Longest form (w/ prefix): п 7°*f″/f″①②③, ё (29 bytes, 16 chars)
+pub const DECLENSION_MAX_LEN: usize =
+    "п ".len() + 1 + DECLENSION_FLAGS_MAX_LEN + DUAL_STRESS_MAX_LEN;
+pub const DECLENSION_MAX_CHARS: usize = 2 + 1 + DECLENSION_FLAGS_MAX_CHARS + DUAL_STRESS_MAX_CHARS;
 
 const fn fmt_declension_any(
     dst: &mut [u8; DECLENSION_MAX_LEN],
     stem_type: AnyStemType,
     flags: DeclensionFlags,
     stress: AnyDualStress,
-) -> &str {
+) -> &mut str {
     let mut dst = UnsafeBuf::new(dst);
 
     dst.push_byte(stem_type.to_ascii_digit());
@@ -31,18 +34,43 @@ const fn fmt_declension_any(
 }
 
 impl NounDeclension {
-    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
+    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &mut str {
         fmt_declension_any(dst, self.stem_type._into(), self.flags, self.stress._into())
     }
 }
 impl PronounDeclension {
-    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
+    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &mut str {
         fmt_declension_any(dst, self.stem_type._into(), self.flags, self.stress._into())
     }
 }
 impl AdjectiveDeclension {
-    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &str {
+    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &mut str {
         fmt_declension_any(dst, self.stem_type._into(), self.flags, self.stress.abbr())
+    }
+}
+impl Declension {
+    pub const fn fmt_to(self, dst: &mut [u8; DECLENSION_MAX_LEN]) -> &mut str {
+        let mut dst = UnsafeBuf::new(dst);
+
+        let (stem_type, flags, stress) = match self {
+            Self::Noun(decl) => {
+                // no prefix for nouns
+                (decl.stem_type._into(), decl.flags, decl.stress._into())
+            },
+            Self::Pronoun(decl) => {
+                dst.push_str("мс ");
+                (decl.stem_type._into(), decl.flags, decl.stress._into())
+            },
+            Self::Adjective(decl) => {
+                dst.push_str("п ");
+                (decl.stem_type._into(), decl.flags, decl.stress._into())
+            },
+        };
+
+        let len = fmt_declension_any(dst.chunk(), stem_type, flags, stress).len();
+        dst.forward(len);
+
+        dst.finish()
     }
 }
 
@@ -57,6 +85,11 @@ impl std::fmt::Display for PronounDeclension {
     }
 }
 impl std::fmt::Display for AdjectiveDeclension {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        self.fmt_to(&mut [0; DECLENSION_MAX_LEN]).fmt(f)
+    }
+}
+impl std::fmt::Display for Declension {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         self.fmt_to(&mut [0; DECLENSION_MAX_LEN]).fmt(f)
     }
