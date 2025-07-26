@@ -91,3 +91,57 @@ pub enum GenderAnimacy {
     FeminineInanimate = 4,
     FeminineAnimate = 5,
 }
+
+impl CaseEx {
+    pub const VALUES: [CaseEx; 9] = [
+        Self::NOM,
+        Self::GEN,
+        Self::DAT,
+        Self::ACC,
+        Self::INS,
+        Self::PRP,
+        Self::PRT,
+        Self::TRANSL,
+        Self::LOC,
+    ];
+}
+impl Case {
+    pub const VALUES: [Case; 6] =
+        [Self::NOM, Self::GEN, Self::DAT, Self::ACC, Self::INS, Self::PRP];
+}
+
+impl GenderEx {
+    pub const VALUES: [GenderEx; 4] = [Self::MASC, Self::NEUT, Self::FEM, Self::COMMON];
+}
+impl Gender {
+    pub const VALUES: [Gender; 3] = [Self::Masculine, Self::Neuter, Self::Feminine];
+}
+
+impl Animacy {
+    pub const VALUES: [Animacy; 2] = [Self::Inanimate, Self::Animate];
+}
+impl Number {
+    pub const VALUES: [Number; 2] = [Self::Singular, Self::Plural];
+}
+
+impl GenderExAnimacy {
+    pub const VALUES: [GenderExAnimacy; 7] = [
+        Self::MasculineInanimate,
+        Self::MasculineAnimate,
+        Self::NeuterInanimate,
+        Self::NeuterAnimate,
+        Self::FeminineInanimate,
+        Self::FeminineAnimate,
+        Self::CommonAnimate,
+    ];
+}
+impl GenderAnimacy {
+    pub const VALUES: [GenderAnimacy; 6] = [
+        Self::MasculineInanimate,
+        Self::MasculineAnimate,
+        Self::NeuterInanimate,
+        Self::NeuterAnimate,
+        Self::FeminineInanimate,
+        Self::FeminineAnimate,
+    ];
+}
